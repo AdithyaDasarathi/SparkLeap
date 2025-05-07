@@ -63,8 +63,8 @@ export default function TaskChat({ onTaskCreate }: TaskChatProps) {
                   </div>
                 </div>
               )}
-              <div className={`rounded-lg px-4 py-2 ${message.isAi ? 'bg-gray-100' : 'bg-blue-500 text-white'}`}>
-                <p className="text-sm">{message.text}</p>
+              <div className={`rounded-lg px-4 py-2 ${message.isAi ? 'bg-gray-100 text-black' : 'bg-blue-500 text-white'}`}>
+                <p className="text-sm font-medium">{message.text}</p>
               </div>
             </div>
           </div>
