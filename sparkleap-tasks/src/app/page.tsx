@@ -87,7 +87,7 @@ export default function Home() {
                   )}
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className={`text-sm font-medium text-gray-900 ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                  <p className={`text-sm font-medium text-black ${task.completed ? 'line-through text-gray-500' : ''}`}>
                     {task.title}
                   </p>
                   <div className="mt-1 flex items-center space-x-2">

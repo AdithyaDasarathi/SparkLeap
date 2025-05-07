@@ -74,7 +74,7 @@ export default function TaskChat({ onTaskCreate }: TaskChatProps) {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-black"
             placeholder="Type your task here..."
           />
         </form>
