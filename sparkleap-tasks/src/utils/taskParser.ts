@@ -19,9 +19,17 @@ export function parseTaskInput(input: string) {
   }
 
   // Define keywords to remove
-  const lowPriorityKeywords = ['low priority', 'low-priority', 'not urgent', 'can wait', 'whenever possible'];
-  const highPriorityKeywords = ['high priority', 'high-priority', 'urgent', 'asap', 'important', 'critical'];
+  const lowPriorityKeywords = ['low priority', 'low-priority', 'not urgent', 'can wait', 'whenever possible', 'low urgency'];
+  const highPriorityKeywords = ['high priority', 'high-priority', 'urgent', 'asap', 'important', 'critical', 'high urgency', 'urgently'];
   const allPriorityKeywords = [...lowPriorityKeywords, ...highPriorityKeywords];
+
+  // Common adverbs to remove
+  const adverbs = [
+    'quickly', 'immediately', 'soon', 'later', 'eventually',
+    'urgently', 'carefully', 'properly', 'efficiently', 'effectively',
+    'definitely', 'certainly', 'probably', 'possibly', 'maybe',
+    'absolutely', 'completely', 'totally', 'finally', 'eventually'
+  ];
 
   // Define transition words and prepositions to remove
   const timeTransitionWords = [
@@ -79,6 +87,14 @@ export function parseTaskInput(input: string) {
     title = title.replace(new RegExp(`\\s*${keyword}\\s*`, 'gi'), ' ');
   });
 
+  // Remove adverbs at the end of the title
+  adverbs.forEach(adverb => {
+    // Remove adverb at the end of the string
+    title = title.replace(new RegExp(`\\s+${adverb}\\s*$`, 'gi'), '');
+    // Remove adverb in parentheses
+    title = title.replace(new RegExp(`\\s*\\(${adverb}\\)\\s*`, 'gi'), ' ');
+  });
+
   // Remove any remaining transition words at the end of the title
   timeTransitionWords.forEach(word => {
     title = title.replace(new RegExp(`\\s*${word}\\s*$`, 'gi'), ' ');
@@ -86,9 +102,11 @@ export function parseTaskInput(input: string) {
 
   // Remove empty parentheses and clean up spaces
   title = title
-    .replace(/\s*\(\s*\)\\s*/g, ' ') // Remove empty parentheses
+    .replace(/\s*\(\s*\)\s*/g, ' ') // Remove empty parentheses
     .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-    .replace(/\s*,\s*$/, '') // Remove trailing commas
+    .replace(/\s*[,.]\s*$/, '') // Remove trailing commas and periods
+    .replace(/\s+ly\s*$/i, '') // Remove any adverb ending in 'ly'
+    .replace(/\s+(urgently|immediately|quickly|soon|later)\s*$/i, '') // Remove common ending adverbs
     .trim();
 
   return {
