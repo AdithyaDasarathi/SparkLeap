@@ -6,6 +6,8 @@ import { Task } from '@/types/task';
 import { CheckIcon, TrashIcon } from '@heroicons/react/24/outline';
 import TaskChat from '@/components/TaskChat';
 import Navigation from '@/components/Navigation';
+import KPIDashboard from '@/components/KPIDashboard';
+import TestChart from '@/components/TestChart';
 
 const sortTasks = (tasks: Task[]): Task[] => {
   return [...tasks].sort((a, b) => {
@@ -154,9 +156,13 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-100">
+      <TestChart />
       <Navigation />
       <div className="py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
+          {/* KPI Dashboard Integration */}
+          <KPIDashboard userId="demo-user" />
+          {/* End KPI Dashboard */}
           <TaskChat onTaskCreate={handleAddTask} onClearTasks={clearAllTasks} tasks={tasks} />
           
           <div className="mt-8">
