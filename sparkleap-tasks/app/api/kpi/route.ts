@@ -15,11 +15,25 @@ export async function GET(request: NextRequest) {
 
     if (metricName) {
       // Get trend data for specific metric
-      const trends = await DatabaseService.getKPITrends(userId, metricName, days);
+      let trends = await DatabaseService.getKPITrends(userId, metricName, days);
+      
+      // If no data exists, seed sample data
+      if (trends.length === 0) {
+        await DatabaseService.seedSampleData(userId);
+        trends = await DatabaseService.getKPITrends(userId, metricName, days);
+      }
+      
       return NextResponse.json({ trends });
     } else {
       // Get all KPIs for user
-      const kpis = await DatabaseService.getKPIsByUser(userId);
+      let kpis = await DatabaseService.getKPIsByUser(userId);
+      
+      // If no data exists, seed sample data
+      if (kpis.length === 0) {
+        await DatabaseService.seedSampleData(userId);
+        kpis = await DatabaseService.getKPIsByUser(userId);
+      }
+      
       return NextResponse.json({ kpis });
     }
   } catch (error) {

@@ -179,4 +179,46 @@ export class DatabaseService {
     
     return status;
   }
+
+  // Seed sample data for all KPI metrics
+  static async seedSampleData(userId: string): Promise<void> {
+    const now = new Date();
+    const metrics = [
+      'MRR', 'NetProfit', 'BurnRate', 'CashOnHand', 'UserSignups', 'Runway',
+      'CAC', 'ChurnRate', 'ActiveUsers', 'ConversionRate'
+    ];
+
+    // Generate 30 days of sample data
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(now.getTime() - (29 - i) * 24 * 60 * 60 * 1000);
+      
+      // Generate realistic sample data for each metric
+      const sampleData = {
+        MRR: 25000 + i * 500 + Math.sin(i / 5) * 1000,
+        NetProfit: 5000 + i * 200 + Math.cos(i / 7) * 1500,
+        BurnRate: 8000 + i * 100 + Math.sin(i / 6) * 500,
+        CashOnHand: 150000 - i * 2000 + Math.cos(i / 4) * 5000,
+        UserSignups: 50 + i * 3 + Math.sin(i / 3) * 10,
+        Runway: 365 - i * 2 + Math.cos(i / 8) * 10,
+        CAC: 120 + Math.sin(i / 5) * 20,
+        ChurnRate: 2.5 + Math.sin(i / 7) * 1.5,
+        ActiveUsers: 2000 + i * 50 + Math.cos(i / 4) * 200,
+        ConversionRate: 3.2 + Math.sin(i / 6) * 1.0
+      };
+
+      for (const metric of metrics) {
+        const value = sampleData[metric as keyof typeof sampleData];
+        await this.createKPI({
+          userId,
+          metricName: metric as any,
+          source: 'Manual',
+          value: Math.max(0, value), // Ensure non-negative values
+          timestamp: date,
+          lastSyncedAt: date,
+          isManualOverride: false,
+          status: 'active'
+        });
+      }
+    }
+  }
 } 
