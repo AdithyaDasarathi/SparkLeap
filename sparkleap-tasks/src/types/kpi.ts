@@ -28,9 +28,10 @@ export type KPIMetric =
   | 'DAU' 
   | 'WAU' 
   | 'WebsiteTraffic' 
-  | 'LeadConversionRate';
+  | 'LeadConversionRate'
+  | 'TasksCompleted';
 
-export type DataSource = 'Stripe' | 'GoogleAnalytics' | 'Airtable' | 'GoogleSheets' | 'Manual' | 'CSV';
+export type DataSource = 'Stripe' | 'GoogleAnalytics' | 'Airtable' | 'GoogleSheets' | 'Manual' | 'CSV' | 'Notion';
 
 export type SyncStatus = 'active' | 'error' | 'pending' | 'disabled';
 
@@ -134,7 +135,7 @@ export const KPI_METRICS: Record<KPIMetric, {
     chartType: 'combo',
     isCore: true,
     goal: 5000
-  },
+  },  
   CashOnHand: { 
     label: 'Cash on Hand', 
     unit: '$', 
@@ -234,6 +235,14 @@ export const KPI_METRICS: Record<KPIMetric, {
     chartType: 'line',
     isCore: false,
     goal: 2
+  },
+  TasksCompleted: {
+    label: 'Tasks Completed',
+    unit: 'tasks',
+    description: 'Number of tasks completed this week (from Notion)',
+    chartType: 'bar',
+    isCore: false,
+    goal: 10
   }
 };
 
@@ -243,5 +252,6 @@ export const DATA_SOURCES: Record<DataSource, { label: string; description: stri
   Airtable: { label: 'Airtable', description: 'Custom data and metrics', authType: 'api_key' },
   GoogleSheets: { label: 'Google Sheets', description: 'Manual data entry and calculations', authType: 'oauth' },
   Manual: { label: 'Manual Entry', description: 'Direct input of KPI values', authType: 'api_key' },
-  CSV: { label: 'CSV Upload', description: 'Bulk data import from CSV files', authType: 'api_key' }
+  CSV: { label: 'CSV Upload', description: 'Bulk data import from CSV files', authType: 'api_key' },
+  Notion: { label: 'Notion', description: 'Data from Notion pages and databases', authType: 'api_key' }
 }; 

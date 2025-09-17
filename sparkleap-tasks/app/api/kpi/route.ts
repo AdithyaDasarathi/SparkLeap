@@ -17,10 +17,27 @@ export async function GET(request: NextRequest) {
       // Get trend data for specific metric
       let trends = await DatabaseService.getKPITrends(userId, metricName, days);
       
-      // If no data exists, seed sample data
-      if (trends.length === 0) {
+      // Only seed sample data if there's no real data at all (including Google Sheets)
+      const allKpis = await DatabaseService.getKPIsByUser(userId);
+      const hasRealData = allKpis.some(kpi => kpi.source !== 'Manual');
+      
+      if (trends.length === 0 && !hasRealData) {
+        console.log('📊 No real data found, seeding sample data...');
         await DatabaseService.seedSampleData(userId);
         trends = await DatabaseService.getKPITrends(userId, metricName, days);
+      } else if (trends.length === 0 && hasRealData) {
+        console.log('📊 Real data exists but no trends for this metric, using latest value');
+        // Get the latest value for this metric from any source
+        const latestKpi = allKpis
+          .filter(kpi => kpi.metricName === metricName)
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+        
+        if (latestKpi) {
+          trends = [{
+            value: latestKpi.isManualOverride ? latestKpi.overrideValue! : latestKpi.value,
+            timestamp: latestKpi.timestamp
+          }];
+        }
       }
       
       return NextResponse.json({ trends });
@@ -28,8 +45,11 @@ export async function GET(request: NextRequest) {
       // Get all KPIs for user
       let kpis = await DatabaseService.getKPIsByUser(userId);
       
-      // If no data exists, seed sample data
-      if (kpis.length === 0) {
+      // Only seed sample data if there's no real data at all
+      const hasRealData = kpis.some(kpi => kpi.source !== 'Manual');
+      
+      if (kpis.length === 0 && !hasRealData) {
+        console.log('📊 No real data found, seeding sample data...');
         await DatabaseService.seedSampleData(userId);
         kpis = await DatabaseService.getKPIsByUser(userId);
       }

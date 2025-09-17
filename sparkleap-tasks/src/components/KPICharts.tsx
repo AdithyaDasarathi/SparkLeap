@@ -1,9 +1,14 @@
 'use client';
-import {
-  LineChart, Line, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip,
-  Legend, ResponsiveContainer
-} from 'recharts';
+import { LineChart } from 'recharts/lib/chart/LineChart';
+import { BarChart } from 'recharts/lib/chart/BarChart';
+import { Line } from 'recharts/lib/cartesian/Line';
+import { Bar } from 'recharts/lib/cartesian/Bar';
+import { XAxis } from 'recharts/lib/cartesian/XAxis';
+import { YAxis } from 'recharts/lib/cartesian/YAxis';
+import { CartesianGrid } from 'recharts/lib/cartesian/CartesianGrid';
+import { Tooltip } from 'recharts/lib/component/Tooltip';
+import { Legend } from 'recharts/lib/component/Legend';
+import { ResponsiveContainer } from 'recharts/lib/component/ResponsiveContainer';
 import { useEffect, useState } from 'react';
 
 const METRICS = [
@@ -79,13 +84,38 @@ export default function KPICharts() {
     fetchData();
   }, []);
 
-  if (loading) return <div className="py-8 text-center">Loading KPI charts...</div>;
+  if (loading) return (
+    <div style={{
+      padding: '24px',
+      textAlign: 'center',
+      color: 'rgba(255, 255, 255, 0.75)'
+    }}>Loading KPI charts...</div>
+  );
 
   return (
-    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div style={{
+      padding: '16px',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+      gap: '24px'
+    }}>
       {/* MRR Line Chart */}
-      <div className="bg-white p-4 rounded-xl shadow-lg">
-        <h3 className="font-bold text-lg mb-2">MRR Trend</h3>
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+        borderRadius: '16px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+        padding: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          marginBottom: '8px',
+          background: 'linear-gradient(135deg, #ffffff, #f97316)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>MRR Trend</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={kpiData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -99,8 +129,22 @@ export default function KPICharts() {
       </div>
 
       {/* CAC + LTV Bar Chart */}
-      <div className="bg-white p-4 rounded-xl shadow-lg">
-        <h3 className="font-bold text-lg mb-2">CAC vs. LTV</h3>
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+        borderRadius: '16px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+        padding: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          marginBottom: '8px',
+          background: 'linear-gradient(135deg, #ffffff, #f97316)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>CAC vs. LTV</h3>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={kpiData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -115,8 +159,22 @@ export default function KPICharts() {
       </div>
 
       {/* DAU and WAU Line Chart */}
-      <div className="bg-white p-4 rounded-xl shadow-lg">
-        <h3 className="font-bold text-lg mb-2">Active Users (DAU & WAU)</h3>
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+        borderRadius: '16px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+        padding: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          marginBottom: '8px',
+          background: 'linear-gradient(135deg, #ffffff, #f97316)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>Active Users (DAU & WAU)</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={kpiData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -131,8 +189,22 @@ export default function KPICharts() {
       </div>
 
       {/* Website Traffic and Conversion Rate */}
-      <div className="bg-white p-4 rounded-xl shadow-lg">
-        <h3 className="font-bold text-lg mb-2">Website Traffic & Conversion</h3>
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+        borderRadius: '16px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+        padding: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          marginBottom: '8px',
+          background: 'linear-gradient(135deg, #ffffff, #f97316)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>Website Traffic & Conversion</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={kpiData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -141,15 +213,29 @@ export default function KPICharts() {
             <YAxis yAxisId="right" orientation="right" />
             <Tooltip />
             <Legend />
-            <Line yAxisId="left" type="monotone" dataKey="WebsiteTraffic" stroke="#10b981" />
+            <Line yAxisId="left" type="monotone" dataKey="WebsiteTraffic" stroke="#f97316" />
             <Line yAxisId="right" type="monotone" dataKey="LeadConversionRate" stroke="#ef4444" />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
       {/* Burn Rate Line Chart */}
-      <div className="bg-white p-4 rounded-xl shadow-lg">
-        <h3 className="font-bold text-lg mb-2">Burn Rate</h3>
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+        borderRadius: '16px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+        padding: '16px'
+      }}>
+        <h3 style={{
+          fontSize: '16px',
+          fontWeight: 600,
+          marginBottom: '8px',
+          background: 'linear-gradient(135deg, #ffffff, #f97316)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>Burn Rate</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={kpiData}>
             <CartesianGrid strokeDasharray="3 3" />

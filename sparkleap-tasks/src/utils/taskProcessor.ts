@@ -1,4 +1,5 @@
 import { Task, Priority, TaskCategory } from '../types/task';
+import { parse } from 'chrono-node';
 
 const SYSTEM_PROMPT = `You are a task extraction system. Your only job is to convert natural language input into structured task data. Do not engage in conversation or add any extra text.
 
@@ -79,6 +80,8 @@ export async function processTaskInput(input: string): Promise<Task[]> {
   const taskCreationPatterns = [
     // Explicit task creation commands
     /^(create|add|make|set up)\s+.*task/i,
+    // Action words that indicate tasks
+    /^(finish|complete|do|work on|handle|deal with|take care of)\s+.*/i,
     // Schedule-related patterns with time
     /^schedule\s+.*\s+at\s+\d{1,2}/i,
     /^remind\s+.*\s+at\s+\d{1,2}/i,
@@ -88,6 +91,7 @@ export async function processTaskInput(input: string): Promise<Task[]> {
     /^.*\s+by\s+\d{1,2}(\s*:\s*\d{2})?\s*(am|pm)/i,
     // I have a meeting pattern
     /^i\s+have\s+a\s+meeting\s+.*\s+at\s+\d{1,2}/i,
+    /^i\s+have\s+a\s+meeting\s+.*\s+on\s+.*/i,
     // Additional patterns for better task detection
     /^remind me to/i,
     /^add (a|an) (new )?appointment/i,
@@ -100,7 +104,7 @@ export async function processTaskInput(input: string): Promise<Task[]> {
   
   // Also check for common meeting/task phrases
   const hasMeetingKeyword = /meeting|appointment|call|interview|deadline|reminder|task/i.test(input);
-  const hasTimeIndicator = /\b\d{1,2}(:\d{2})?(\s*[ap]m)?\b|\btoday\b|\btomorrow\b|\bnext\s+\w+\b|\bmonday\b|\btuesday\b|\bwednesday\b|\bthursday\b|\bfriday\b|\bsaturday\b|\bsunday\b/i.test(input);
+  const hasTimeIndicator = /\b\d{1,2}(:\d{2})?(\s*[ap]m)?\b|\btoday\b|\btomorrow\b|\bnext\s+\w+\b|\bmonday\b|\btuesday\b|\bwednesday\b|\bthursday\b|\bfriday\b|\bsaturday\b|\bsunday\b|\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:st|nd|rd|th)?\b/i.test(input);
   
   console.log('Task detection:', {
     isTaskCreation,
@@ -121,53 +125,75 @@ export async function processTaskInput(input: string): Promise<Task[]> {
   let category: TaskCategory = 'Follow-up';
   let priority: Priority = 'Medium';
   
-  // Extract date information
-  // Check for specific day patterns
-  if (/tomorrow/i.test(input)) {
-    dueDate.setDate(dueDate.getDate() + 1);
-  } else if (/next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(input)) {
-    const dayMatch = input.match(/next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
-    if (dayMatch) {
-      const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-        .indexOf(dayMatch[1].toLowerCase());
-      
-      // Calculate days to add
-      const currentDay = dueDate.getDay();
-      let daysToAdd = dayOfWeek - currentDay;
-      if (daysToAdd <= 0) daysToAdd += 7; // If it's already past that day this week, go to next week
-      daysToAdd += 7; // Add another week because it's "next" week
-      
-      dueDate.setDate(dueDate.getDate() + daysToAdd);
-    }
-  } else if (/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(input)) {
-    const dayMatch = input.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
-    if (dayMatch) {
-      const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-        .indexOf(dayMatch[1].toLowerCase());
-      
-      // Calculate days to add
-      const currentDay = dueDate.getDay();
-      let daysToAdd = dayOfWeek - currentDay;
-      if (daysToAdd <= 0) daysToAdd += 7; // If it's already past that day this week, go to next week
-      
-      dueDate.setDate(dueDate.getDate() + daysToAdd);
+  // Use chrono-node for better date parsing
+  const parsedDates = parse(input, undefined, { forwardDate: true });
+  console.log('Parsed dates:', parsedDates);
+  if (parsedDates.length > 0) {
+    const parsedDate = parsedDates[0].start.date();
+    // Ensure we use local timezone to avoid date offset issues
+    dueDate = new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate());
+    console.log('Parsed due date (original):', parsedDate);
+    console.log('Parsed due date (local):', dueDate);
+  } else {
+    // Fallback to simple patterns if chrono-node doesn't find anything
+    if (/tomorrow/i.test(input)) {
+      dueDate.setDate(dueDate.getDate() + 1);
+    } else if (/next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(input)) {
+      const dayMatch = input.match(/next\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
+      if (dayMatch) {
+        const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+          .indexOf(dayMatch[1].toLowerCase());
+        
+        // Calculate days to add
+        const currentDay = dueDate.getDay();
+        let daysToAdd = dayOfWeek - currentDay;
+        if (daysToAdd <= 0) daysToAdd += 7; // If it's already past that day this week, go to next week
+        daysToAdd += 7; // Add another week because it's "next" week
+        
+        dueDate.setDate(dueDate.getDate() + daysToAdd);
+      }
+    } else if (/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i.test(input)) {
+      const dayMatch = input.match(/(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i);
+      if (dayMatch) {
+        const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+          .indexOf(dayMatch[1].toLowerCase());
+        
+        // Calculate days to add
+        const currentDay = dueDate.getDay();
+        let daysToAdd = dayOfWeek - currentDay;
+        if (daysToAdd <= 0) daysToAdd += 7; // If it's already past that day this week, go to next week
+        
+        dueDate.setDate(dueDate.getDate() + daysToAdd);
+      }
     }
   }
   
-  // Set default time to 9 AM
-  dueDate.setHours(9, 0, 0, 0);
+  // Set default time to 9 AM if no time was parsed
+  if (parsedDates.length === 0 || !parsedDates[0].start.isCertain('hour')) {
+    // Store the date before setting time to avoid timezone issues
+    const year = dueDate.getFullYear();
+    const month = dueDate.getMonth();
+    const day = dueDate.getDate();
+    dueDate = new Date(year, month, day, 9, 0, 0, 0);
+  }
   
-  // Extract time if specified
-  const timeMatch = input.match(/(\d{1,2})(?::(\d{2}))?(\s*[AaPp][Mm])?/);
-  if (timeMatch) {
-    let hours = parseInt(timeMatch[1]);
-    const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
-    const isPM = timeMatch[3] && timeMatch[3].toLowerCase().includes('pm');
-    
-    if (isPM && hours < 12) hours += 12;
-    if (!isPM && hours === 12) hours = 0;
-    
-    dueDate.setHours(hours, minutes, 0, 0);
+  // Extract time if specified (fallback for when chrono-node doesn't parse time)
+  if (parsedDates.length === 0 || !parsedDates[0].start.isCertain('hour')) {
+    const timeMatch = input.match(/(\d{1,2})(?::(\d{2}))?(\s*[AaPp][Mm])?/);
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1]);
+      const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      const isPM = timeMatch[3] && timeMatch[3].toLowerCase().includes('pm');
+      
+      if (isPM && hours < 12) hours += 12;
+      if (!isPM && hours === 12) hours = 0;
+      
+      // Store the date before setting time to avoid timezone issues
+      const year = dueDate.getFullYear();
+      const month = dueDate.getMonth();
+      const day = dueDate.getDate();
+      dueDate = new Date(year, month, day, hours, minutes, 0, 0);
+    }
   }
   
   // Check for priority keywords in the entire input first
@@ -191,14 +217,23 @@ export async function processTaskInput(input: string): Promise<Task[]> {
     category = 'Follow-up';
     // Priority is already set above, don't override it here
   } else {
-    // For general tasks
-    const taskMatch = input.match(/(?:create|add|make|set up)\s+(?:a\s+)?(?:task\s+)?(?:to\s+)?([^\s]+(?:\s+[^\s]+)*?)(?:\s+by|\s+at|\s+on|$)/i);
-    if (taskMatch && taskMatch[1]) {
-      taskTitle = taskMatch[1];
-    } else {
-      // Fallback - use the input as title but clean it up
-      taskTitle = input.replace(/^(create|add|schedule|remind|i have)\s+(?:a\s+)?/i, '').replace(/\s+at\s+\d{1,2}/i, '');
-    }
+    // For general tasks, clean up the title by removing date/time references
+    let cleanTitle = input;
+    
+    // Remove common task creation prefixes
+    cleanTitle = cleanTitle.replace(/^(create|add|make|set up|schedule|remind|i have|finish|complete|do|work on|handle|deal with|take care of)\s+(?:a\s+)?(?:task\s+)?(?:to\s+)?/i, '');
+    
+    // Remove date/time patterns that chrono-node might have missed
+    cleanTitle = cleanTitle.replace(/\s+(?:on|at|by|for)\s+(?:september|october|november|december|january|february|march|april|may|june|july|august)\s+\d{1,2}(?:st|nd|rd|th)?(?:\s+pm|\s+am)?/gi, '');
+    cleanTitle = cleanTitle.replace(/\s+(?:on|at|by|for)\s+\d{1,2}(?:st|nd|rd|th)?\s+(?:september|october|november|december|january|february|march|april|may|june|july|august)/gi, '');
+    cleanTitle = cleanTitle.replace(/\s+(?:on|at|by|for)\s+(?:tomorrow|today|next\s+\w+)/gi, '');
+    cleanTitle = cleanTitle.replace(/\s+at\s+\d{1,2}(?::\d{2})?(?:\s*[ap]m)?/gi, '');
+    cleanTitle = cleanTitle.replace(/\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi, '');
+    
+    // Clean up extra spaces
+    cleanTitle = cleanTitle.replace(/\s+/g, ' ').trim();
+    
+    taskTitle = cleanTitle || 'Untitled Task';
     
     // Set category based on keywords
     if (/work|project|report|email|document/i.test(input)) {

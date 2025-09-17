@@ -44,11 +44,11 @@ export async function callChatApi(messages: Message[]) {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
-              content: 'You are an advanced AI assistant powered by GPT-4. You excel at both task management and answering questions with deep, nuanced understanding. When providing answers, always format them with clear bullet points, and add a relevant emoji at the start of each bullet point. For example:\n\n• 🎯 First point\n• 💡 Second point\n• 🔍 Third point\n\nFor general knowledge questions, provide comprehensive, well-structured answers with real-world examples. For business and technical topics, give practical insights backed by industry expertise.\n\nVery important: **Bold important words, phrases, or key concepts** in your responses using double asterisks (**) to make them stand out. Bold any terms, numbers, or ideas that are central to understanding your answer.\n\nAlways maintain a friendly and engaging tone.'
+              content: 'You are an advanced AI assistant. Always return answers formatted as a clean bullet list.\n\nFormatting Rules (strict):\n- Each bullet MUST be on its own new line (use a real newline \n, never inline separators).\n- Start each bullet with an emoji, then bold the key phrase, then a concise explanation.\n- Prefer short, scannable bullets.\n- If steps are needed, use a numbered list (each number on its own line).\n- Do not prepend summaries before or after the list.\n\nExample:\n• 🎯 **Definition**: One‑line definition.\n• 💡 **Why it matters**: Short implication.\n• 🔧 **How to use**: Actionable instruction.\n\nReturn only the list using real newlines between items.'
             },
             ...messages
           ],

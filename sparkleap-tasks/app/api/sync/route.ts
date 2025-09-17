@@ -14,6 +14,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`🔄 Starting sync for data source: ${sourceId}`);
+
     // Create sync job
     const syncJob = await DatabaseService.createSyncJob({
       userId: userId || 'unknown',
@@ -22,6 +24,9 @@ export async function POST(request: NextRequest) {
       startedAt: new Date(),
       metricsSynced: 0
     });
+
+    // Add a small delay to ensure data source is fully saved
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Perform sync
     const result = await KPISyncService.syncDataSource(sourceId);
@@ -33,6 +38,8 @@ export async function POST(request: NextRequest) {
       errorMessage: result.error,
       metricsSynced: result.metricsSynced
     });
+
+    console.log(`✅ Sync completed for ${sourceId}: ${result.success ? 'Success' : 'Failed'}`);
 
     return NextResponse.json({
       success: result.success,

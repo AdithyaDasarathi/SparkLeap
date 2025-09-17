@@ -39,34 +39,30 @@ const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
     switch (priority) {
       case 'High':
         return {
-          bg: 'bg-red-100',
-          text: 'text-red-800',
-          border: 'border-red-200',
-          hover: 'hover:bg-red-50',
+          background: 'rgba(239, 68, 68, 0.1)',
+          color: '#fca5a5',
+          border: '1px solid rgba(239, 68, 68, 0.2)',
           icon: '🔴'
         };
       case 'Medium':
         return {
-          bg: 'bg-amber-100',
-          text: 'text-amber-800',
-          border: 'border-amber-200',
-          hover: 'hover:bg-amber-50',
-          icon: '🟠'
+          background: 'rgba(245, 158, 11, 0.1)',
+          color: '#fbbf24',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          icon: '🟡'
         };
       case 'Low':
         return {
-          bg: 'bg-green-100',
-          text: 'text-green-800',
-          border: 'border-green-200',
-          hover: 'hover:bg-green-50',
+          background: 'rgba(34, 197, 94, 0.1)',
+          color: '#4ade80',
+          border: '1px solid rgba(34, 197, 94, 0.2)',
           icon: '🟢'
         };
       default:
         return {
-          bg: 'bg-gray-100',
-          text: 'text-gray-800',
-          border: 'border-gray-200',
-          hover: 'hover:bg-gray-50',
+          background: 'rgba(156, 163, 175, 0.1)',
+          color: '#9ca3af',
+          border: '1px solid rgba(156, 163, 175, 0.2)',
           icon: '⚪'
         };
     }
@@ -115,27 +111,71 @@ const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
   Object.values(groupedTasks).forEach(group => group.sort(sortByPriorityAndDate));
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Overdue Tasks */}
       {groupedTasks.overdue.length > 0 && (
         <div>
-          <h3 className="text-red-600 font-semibold mb-3 flex items-center">
-            <span className="mr-2">⚠️</span>
+          <h3 style={{
+            color: '#fca5a5',
+            fontWeight: '600',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '16px'
+          }}>
+            <span style={{ marginRight: '8px' }}>⚠️</span>
             <span>Overdue ({groupedTasks.overdue.length})</span>
           </h3>
-          <div className="border border-red-200 rounded-lg overflow-hidden bg-white shadow-sm">
-            <div className="divide-y divide-red-100">
+          <div style={{
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            background: 'rgba(239, 68, 68, 0.05)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div>
               {groupedTasks.overdue.map((task: Task, index: number) => {
                 const style = getPriorityStyle(task.priority);
                 return (
-                  <div key={task.id} className={`p-3 ${style.hover} flex items-center justify-between`}>
-                    <div className="flex-1">
-                      <div className="font-medium text-red-700 mb-1">{task.title}</div>
-                      <div className="text-xs text-red-500">{formatDateTime(task.dueDate)}</div>
+                  <div key={task.id} style={{
+                    padding: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: index < groupedTasks.overdue.length - 1 ? '1px solid rgba(239, 68, 68, 0.1)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.08)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontWeight: '500',
+                        color: '#fca5a5',
+                        marginBottom: '4px',
+                        fontSize: '14px'
+                      }}>{task.title}</div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#f87171'
+                      }}>{formatDateTime(task.dueDate)}</div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text} border ${style.border}`}>
-                        <span className="mr-1">{style.icon}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        background: style.background,
+                        color: style.color,
+                        border: style.border
+                      }}>
+                        <span style={{ marginRight: '4px' }}>{style.icon}</span>
                         {task.priority}
                       </span>
                     </div>
@@ -150,23 +190,67 @@ const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
       {/* Today's Tasks */}
       {groupedTasks.today.length > 0 && (
         <div>
-          <h3 className="text-blue-600 font-semibold mb-3 flex items-center">
-            <span className="mr-2">📅</span>
+          <h3 style={{
+            color: '#60a5fa',
+            fontWeight: '600',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '16px'
+          }}>
+            <span style={{ marginRight: '8px' }}>📅</span>
             <span>Today ({groupedTasks.today.length})</span>
           </h3>
-          <div className="border border-blue-100 rounded-lg overflow-hidden bg-white shadow-sm">
-            <div className="divide-y divide-gray-100">
+          <div style={{
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            background: 'rgba(59, 130, 246, 0.05)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div>
               {groupedTasks.today.map((task: Task, index: number) => {
                 const style = getPriorityStyle(task.priority);
                 return (
-                  <div key={task.id} className={`p-3 ${style.hover} flex items-center justify-between`}>
-                    <div className="flex-1">
-                      <div className="font-medium text-black mb-1">{task.title}</div>
-                      <div className="text-xs text-gray-500">{formatDateTime(task.dueDate)}</div>
+                  <div key={task.id} style={{
+                    padding: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: index < groupedTasks.today.length - 1 ? '1px solid rgba(59, 130, 246, 0.1)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontWeight: '500',
+                        color: '#ffffff',
+                        marginBottom: '4px',
+                        fontSize: '14px'
+                      }}>{task.title}</div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: 'rgba(255, 255, 255, 0.6)'
+                      }}>{formatDateTime(task.dueDate)}</div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text} border ${style.border}`}>
-                        <span className="mr-1">{style.icon}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        background: style.background,
+                        color: style.color,
+                        border: style.border
+                      }}>
+                        <span style={{ marginRight: '4px' }}>{style.icon}</span>
                         {task.priority}
                       </span>
                     </div>
@@ -181,23 +265,67 @@ const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
       {/* Upcoming Tasks */}
       {groupedTasks.upcoming.length > 0 && (
         <div>
-          <h3 className="text-gray-700 font-semibold mb-3 flex items-center">
-            <span className="mr-2">🔜</span>
+          <h3 style={{
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontWeight: '600',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '16px'
+          }}>
+            <span style={{ marginRight: '8px' }}>🔜</span>
             <span>Upcoming ({groupedTasks.upcoming.length})</span>
           </h3>
-          <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-            <div className="divide-y divide-gray-100">
+          <div style={{
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            background: 'rgba(255, 255, 255, 0.02)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div>
               {groupedTasks.upcoming.map((task: Task, index: number) => {
                 const style = getPriorityStyle(task.priority);
                 return (
-                  <div key={task.id} className={`p-3 ${style.hover} flex items-center justify-between`}>
-                    <div className="flex-1">
-                      <div className="font-medium text-black mb-1">{task.title}</div>
-                      <div className="text-xs text-gray-500">{formatDateTime(task.dueDate)}</div>
+                  <div key={task.id} style={{
+                    padding: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: index < groupedTasks.upcoming.length - 1 ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontWeight: '500',
+                        color: '#ffffff',
+                        marginBottom: '4px',
+                        fontSize: '14px'
+                      }}>{task.title}</div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: 'rgba(255, 255, 255, 0.6)'
+                      }}>{formatDateTime(task.dueDate)}</div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${style.bg} ${style.text} border ${style.border}`}>
-                        <span className="mr-1">{style.icon}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        background: style.background,
+                        color: style.color,
+                        border: style.border
+                      }}>
+                        <span style={{ marginRight: '4px' }}>{style.icon}</span>
                         {task.priority}
                       </span>
                     </div>
@@ -212,20 +340,66 @@ const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
       {/* Completed Tasks */}
       {groupedTasks.completed.length > 0 && (
         <div>
-          <h3 className="text-green-600 font-semibold mb-3 flex items-center">
-            <span className="mr-2">✅</span>
+          <h3 style={{
+            color: '#4ade80',
+            fontWeight: '600',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '16px'
+          }}>
+            <span style={{ marginRight: '8px' }}>✅</span>
             <span>Completed ({groupedTasks.completed.length})</span>
           </h3>
-          <div className="border border-green-100 rounded-lg overflow-hidden bg-white shadow-sm">
-            <div className="divide-y divide-gray-100">
+          <div style={{
+            border: '1px solid rgba(34, 197, 94, 0.2)',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            background: 'rgba(34, 197, 94, 0.05)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div>
               {groupedTasks.completed.map((task: Task, index: number) => (
-                <div key={task.id} className="p-3 hover:bg-green-50 flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-500 line-through mb-1">{task.title}</div>
-                    <div className="text-xs text-gray-400">{task.dueDate ? formatDateTime(task.dueDate) : 'No due date'}</div>
+                <div key={task.id} style={{
+                  padding: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: index < groupedTasks.completed.length - 1 ? '1px solid rgba(34, 197, 94, 0.1)' : 'none',
+                  opacity: 0.6,
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(34, 197, 94, 0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{
+                      fontWeight: '500',
+                      color: '#4ade80',
+                      marginBottom: '4px',
+                      fontSize: '14px',
+                      textDecoration: 'line-through'
+                    }}>{task.title}</div>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#6ee7b7'
+                    }}>{task.dueDate ? formatDateTime(task.dueDate) : 'No due date'}</div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '4px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      background: 'rgba(156, 163, 175, 0.1)',
+                      color: '#9ca3af',
+                      border: '1px solid rgba(156, 163, 175, 0.2)'
+                    }}>
                       {task.priority}
                     </span>
                   </div>
@@ -238,9 +412,13 @@ const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
 
       {/* No tasks message */}
       {tasks.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          <p className="text-lg">No tasks yet</p>
-          <p className="text-sm mt-2">Start by typing a task in the chat box below</p>
+        <div style={{
+          textAlign: 'center',
+          padding: '32px 0',
+          color: 'rgba(255, 255, 255, 0.6)'
+        }}>
+          <p style={{ fontSize: '18px', marginBottom: '8px' }}>No tasks yet</p>
+          <p style={{ fontSize: '14px' }}>Start by typing a task in the chat box below</p>
         </div>
       )}
     </div>

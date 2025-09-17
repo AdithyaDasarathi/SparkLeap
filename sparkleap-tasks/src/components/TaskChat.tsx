@@ -142,90 +142,247 @@ const TaskChat = ({ onTaskCreate, onClearTasks, tasks }: TaskChatProps): ReactEl
   };
 
   return (
-    <div className="chat-container">
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      minHeight: '600px',
+      background: 'transparent'
+    }}>
       {/* Chat messages */}
-      <div className="messages-container">
-        <div className="max-w-4xl mx-auto">
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '0 0 20px 0'
+      }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 16px' }}>
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`chat-message-container ${message.role === 'user' ? 'chat-message-user' : 'chat-message-assistant'}`}
+              style={{
+                display: 'flex',
+                marginBottom: '16px',
+                justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start',
+                alignItems: 'flex-start',
+                gap: '12px'
+              }}
             >
-              <div className={`chat-bubble ${message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
-                <div className="message-content">
-                  {message.content.split(/\*\*(.+?)\*\*/).map((part, i) => 
-                    i % 2 === 0 ? part : <strong key={i}>{part}</strong>
-                  )}
-                </div>
-              </div>
-              
-              <div className={`chat-avatar ${message.role === 'user' ? 'chat-avatar-user' : 'chat-avatar-assistant'}`}>
-                {message.role === 'user' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              {message.role === 'assistant' && (
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #f97316, #dc2626)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: '4px'
+                }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '16px', height: '16px', color: '#000000' }} viewBox="0 0 20 20" fill="currentColor">
                     <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
                     <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
                   </svg>
+                </div>
+              )}
+              
+              <div style={{
+                maxWidth: '70%',
+                padding: '12px 16px',
+                borderRadius: message.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                background: message.role === 'user' 
+                  ? 'linear-gradient(135deg, #f97316, #dc2626)'
+                  : 'rgba(255, 255, 255, 0.1)',
+                color: message.role === 'user' ? '#000000' : '#ffffff',
+                border: message.role === 'assistant' ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+                backdropFilter: 'blur(10px)',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {message.content.split(/\*\*(.+?)\*\*/).map((part, i) => 
+                  i % 2 === 0 ? part : <strong key={i} style={{ fontWeight: '600' }}>{part}</strong>
                 )}
               </div>
+
+              {message.role === 'user' && (
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: '4px'
+                }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '16px', height: '16px', color: '#ffffff' }} viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
           ))}
           
           {/* Typing indicator */}
           {isTyping && (
-            <div className="chat-message-container chat-message-assistant">
-              <div className="typing-indicator">
-                <div className="typing-dot"></div>
-                <div className="typing-dot"></div>
-                <div className="typing-dot"></div>
-              </div>
-              <div className="chat-avatar chat-avatar-assistant">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <div style={{
+              display: 'flex',
+              marginBottom: '16px',
+              justifyContent: 'flex-start',
+              alignItems: 'flex-start',
+              gap: '12px'
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #f97316, #dc2626)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginTop: '4px'
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '16px', height: '16px', color: '#000000' }} viewBox="0 0 20 20" fill="currentColor">
                   <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
                   <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
                 </svg>
               </div>
+              <div style={{
+                padding: '12px 16px',
+                borderRadius: '18px 18px 18px 4px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                gap: '4px',
+                alignItems: 'center'
+              }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  animation: 'pulse 1.4s ease-in-out infinite both'
+                }} />
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  animation: 'pulse 1.4s ease-in-out infinite both',
+                  animationDelay: '0.2s'
+                }} />
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  animation: 'pulse 1.4s ease-in-out infinite both',
+                  animationDelay: '0.4s'
+                }} />
+              </div>
             </div>
           )}
           
-          <div ref={messagesEndRef} className="h-1" />
+          <div ref={messagesEndRef} style={{ height: '4px' }} />
         </div>
       </div>
 
       {/* Task list */}
       {tasks.length > 0 && (
-        <div className="border-t border-gray-200 bg-white shadow-sm">
-          <div className="max-w-4xl mx-auto py-5 px-4">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Your Tasks</h2>
+        <div style={{
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'rgba(255, 255, 255, 0.02)',
+          padding: '24px 0'
+        }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 16px' }}>
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#ffffff',
+              marginBottom: '16px',
+              background: 'linear-gradient(135deg, #ffffff, #f97316)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>Your Tasks</h2>
             <TaskList tasks={tasks} />
           </div>
         </div>
       )}
 
       {/* Input area */}
-      <div className="input-container">
-        <div className="max-w-4xl mx-auto w-full">
-          <div className="flex items-center">
-            <div className="relative flex-grow">
+      <div style={{
+        padding: '20px 0 0 0',
+        borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 16px' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <div style={{ flex: 1, position: 'relative' }}>
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message or create a task..."
-                className="chat-input w-full"
                 ref={inputRef}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  borderRadius: '24px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  outline: 'none',
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+                  e.target.style.background = 'rgba(255, 255, 255, 0.08)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                }}
               />
             </div>
             <button
               onClick={handleSubmit}
-              className="send-button flex-shrink-0"
               aria-label="Send message"
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #f97316, #dc2626)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                flexShrink: 0
+              }}
+              onMouseEnter={(e) => {
+                const target = e.target as HTMLButtonElement;
+                target.style.transform = 'scale(1.05)';
+                target.style.boxShadow = '0 8px 25px rgba(16, 185, 129, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                const target = e.target as HTMLButtonElement;
+                target.style.transform = 'scale(1)';
+                target.style.boxShadow = 'none';
+              }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" style={{ width: '20px', height: '20px', color: '#000000' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             </button>
