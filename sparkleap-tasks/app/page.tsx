@@ -8,7 +8,7 @@ export default function Home() {
     <main style={{
       position: 'relative',
       minHeight: '100vh',
-      overflow: 'hidden',
+      overflow: 'visible',
       // Deep onyx with subtle vignette + warm gradient wash
       background: `radial-gradient(1200px 600px at 50% -10%, rgba(255, 88, 24, 0.35), rgba(0,0,0,0) 60%),
                    radial-gradient(900px 500px at 85% 20%, rgba(220, 38, 38, 0.30), rgba(0,0,0,0) 60%),

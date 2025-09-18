@@ -20,7 +20,12 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage = 'home' }) => {
   // Landing-style header block
   if (currentPage === 'home') {
     return (
-      <header style={{ position: 'relative', zIndex: 20, padding: '16px 24px' }}>
+      <header style={{ 
+        position: 'sticky', 
+        top: '0', 
+        zIndex: 20, 
+        padding: '16px 24px'
+      }}>
         <div style={{
           maxWidth: '1000px',
           margin: '0 auto',
