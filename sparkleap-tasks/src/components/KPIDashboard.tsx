@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   KPI, 
   KPIMetric, 
@@ -14,24 +14,23 @@ import {
   ArrowDownIcon, 
   MinusIcon,
   PlusIcon,
-  XMarkIcon
+  XMarkIcon,
+  BellIcon,
+  Cog6ToothIcon,
+  SunIcon,
+  MoonIcon
 } from '@heroicons/react/24/solid';
 import { LineChart } from 'recharts/lib/chart/LineChart';
 import { BarChart } from 'recharts/lib/chart/BarChart';
-import { AreaChart } from 'recharts/lib/chart/AreaChart';
-import { ComposedChart } from 'recharts/lib/chart/ComposedChart';
-import { PieChart } from 'recharts/lib/chart/PieChart';
 import { Line } from 'recharts/lib/cartesian/Line';
 import { Bar } from 'recharts/lib/cartesian/Bar';
-import { Area } from 'recharts/lib/cartesian/Area';
 import { XAxis } from 'recharts/lib/cartesian/XAxis';
 import { YAxis } from 'recharts/lib/cartesian/YAxis';
 import { CartesianGrid } from 'recharts/lib/cartesian/CartesianGrid';
 import { Tooltip } from 'recharts/lib/component/Tooltip';
 import { ResponsiveContainer } from 'recharts/lib/component/ResponsiveContainer';
-import { ReferenceLine } from 'recharts/lib/cartesian/ReferenceLine';
-import { Pie } from 'recharts/lib/polar/Pie';
-import { Cell } from 'recharts/lib/component/Cell';
+import { generateChatResponse } from '../utils/chatHelper';
+import type { Message } from '../types/message';
 
 interface KPIDashboardProps {
   userId: string;
@@ -41,19 +40,32 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [trends, setTrends] = useState<Record<KPIMetric, KPITrend>>({} as Record<KPIMetric, KPITrend>);
   const [loading, setLoading] = useState(true);
-  const [selectedMetric, setSelectedMetric] = useState<KPIMetric | null>(null);
-  const [visibleCustomKPIs, setVisibleCustomKPIs] = useState<KPIMetric[]>([]);
-  const [showAddKPIModal, setShowAddKPIModal] = useState(false);
-  const [addDataModal, setAddDataModal] = useState<{ metric: KPIMetric | null, open: boolean }>({ metric: null, open: false });
-  const [newDataValue, setNewDataValue] = useState('');
-  const [newDataDate, setNewDataDate] = useState('');
-  const [editGraphModal, setEditGraphModal] = useState<{ metric: KPIMetric | null, open: boolean }>({ metric: null, open: false });
-  const [editGraphData, setEditGraphData] = useState<{ value: string; date: string }[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  // AI Chat state
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     console.log('🔄 KPI Dashboard mounted, fetching KPIs for user:', userId);
     fetchKPIs();
+    
+    // Initialize chat with welcome message
+    setChatMessages([{
+      role: 'assistant',
+      content: 'Welcome back! Feel free to ask me anything about your current metrics. How can I help?'
+    }]);
   }, [userId]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages]);
 
   const fetchKPIs = async () => {
     try {
@@ -66,57 +78,9 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
         console.log('📊 Fetched KPIs:', data.kpis.length, 'total KPIs');
         setKpis(data.kpis);
         
-        // Fetch trends for each metric
-        const trendData: Record<KPIMetric, KPITrend> = {} as Record<KPIMetric, KPITrend>;
-        const allMetrics = [...CORE_KPI_METRICS, ...CUSTOMIZABLE_KPI_METRICS];
-        
-        console.log('📈 Fetching trends for metrics:', allMetrics);
-        
-        for (const metric of allMetrics) {
-          console.log(`📊 Fetching trends for ${metric}...`);
-          const trendResponse = await fetch(`/api/kpi?userId=${userId}&metricName=${metric}`);
-          const trendDataResponse = await trendResponse.json();
-          
-          console.log(`📊 ${metric} trends response:`, {
-            hasTrends: !!trendDataResponse.trends,
-            trendsLength: trendDataResponse.trends?.length || 0,
-            sampleData: trendDataResponse.trends?.slice(0, 2) || []
-          });
-          
-          if (trendDataResponse.trends && trendDataResponse.trends.length > 0) {
-            trendData[metric] = {
-              metricName: metric,
-              values: trendDataResponse.trends.map((item: any) => ({
-                value: item.value,
-                timestamp: new Date(item.timestamp)
-              })),
-              trend: calculateTrend(trendDataResponse.trends),
-              percentageChange: calculatePercentageChange(trendDataResponse.trends)
-            };
-            console.log(`✅ ${metric} trend created with ${trendDataResponse.trends.length} data points`);
-          } else {
-            // Generate demo trend data for Core KPIs
-            if (CORE_KPI_METRICS.includes(metric)) {
-              const demoTrendData = generateDemoTrendData(metric);
-              trendData[metric] = {
-                metricName: metric,
-                values: demoTrendData.map(item => ({
-                  value: item.value,
-                  timestamp: new Date(item.timestamp)
-                })),
-                trend: calculateTrend(demoTrendData),
-                percentageChange: calculatePercentageChange(demoTrendData)
-              };
-              console.log(`🎭 Generated demo trend data for ${metric}`);
-            } else {
-              console.log(`⚠️ No trends data for ${metric}`);
-            }
-          }
-        }
-        
-        console.log('📈 Final trends data:', Object.keys(trendData).length, 'metrics with trends');
-        console.log('📊 KPIs data:', kpis.length, 'total KPIs');
-        setTrends(trendData);
+        // Generate demo data for the exact metrics shown in the image
+        const demoData = generateExactDemoData();
+        setTrends(demoData);
       }
     } catch (error) {
       console.error('Error fetching KPIs:', error);
@@ -125,467 +89,305 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
     }
   };
 
-  const calculateTrend = (values: Array<{ value: number; timestamp: string }>): 'up' | 'down' | 'stable' => {
-    if (values.length < 2) return 'stable';
-    
-    const recent = values.slice(-7); // Last 7 days
-    const older = values.slice(-14, -7); // 7 days before that
-    
-    const recentAvg = recent.reduce((sum, v) => sum + v.value, 0) / recent.length;
-    const olderAvg = older.reduce((sum, v) => sum + v.value, 0) / older.length;
-    
-    const change = ((recentAvg - olderAvg) / olderAvg) * 100;
-    
-    if (change > 5) return 'up';
-    if (change < -5) return 'down';
-    return 'stable';
-  };
+  const generateExactDemoData = (): Record<KPIMetric, KPITrend> => {
+    const now = new Date();
+    const data: Record<KPIMetric, KPITrend> = {} as Record<KPIMetric, KPITrend>;
 
-  const calculatePercentageChange = (values: Array<{ value: number; timestamp: string }>): number => {
-    if (values.length < 2) return 0;
-    
-    const latest = values[values.length - 1].value;
-    const previous = values[values.length - 2].value;
-    
-    return previous > 0 ? ((latest - previous) / previous) * 100 : 0;
-  };
-
-  const generateDemoTrendData = (metricName: KPIMetric): Array<{ value: number; timestamp: string }> => {
-    const baseValues: Record<KPIMetric, number> = {
-      'MRR': 35000,
-      'NetProfit': 8000,
-      'BurnRate': 12000,
-      'CashOnHand': 100000,
-      'UserSignups': 200,
-      'Runway': 300,
-      'CAC': 120,
-      'ChurnRate': 2.5,
-      'ActiveUsers': 1000,
-      'ConversionRate': 2.8,
-      'LTV': 2000,
-      'DAU': 700,
-      'WAU': 1800,
-      'WebsiteTraffic': 12000,
-      'LeadConversionRate': 2.5,
-      'TasksCompleted': 8
+    // MRR: $18,200 with +7.2% growth
+    data['MRR'] = {
+      metricName: 'MRR',
+      values: generateTrendData(18200, 7.2, 30),
+      trend: 'up',
+      percentageChange: 7.2
     };
 
-    const baseValue = baseValues[metricName] || 1000;
-    const data = [];
+    // Net Profit: $4,650 with +12.5% growth
+    data['NetProfit'] = {
+      metricName: 'NetProfit',
+      values: generateTrendData(4650, 12.5, 30),
+      trend: 'up',
+      percentageChange: 12.5
+    };
+
+    // User Signups: +1,240 with +12.6% growth
+    data['UserSignups'] = {
+      metricName: 'UserSignups',
+      values: generateTrendData(1240, 12.6, 30),
+      trend: 'up',
+      percentageChange: 12.6
+    };
+
+    // Runway: 48 Days with -12 days change
+    data['Runway'] = {
+      metricName: 'Runway',
+      values: generateTrendData(48, -20, 30),
+      trend: 'down',
+      percentageChange: -20
+    };
+
+    // Burn Rate: $6,200 with +18.4% increase
+    data['BurnRate'] = {
+      metricName: 'BurnRate',
+      values: generateTrendData(6200, 18.4, 30),
+      trend: 'up',
+      percentageChange: 18.4
+    };
+
+    // Cash on Hand: $45,600 with -9.2% decrease
+    data['CashOnHand'] = {
+      metricName: 'CashOnHand',
+      values: generateTrendData(45600, -9.2, 30),
+      trend: 'down',
+      percentageChange: -9.2
+    };
+
+    return data;
+  };
+
+  const generateTrendData = (baseValue: number, percentageChange: number, days: number) => {
+    const data: { value: number; timestamp: Date }[] = [];
     const now = new Date();
     
-    // Generate 30 days of data
-    for (let i = 29; i >= 0; i--) {
+    for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       
-      // Add some realistic variation
-      const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
-      const trend = i < 15 ? 0.02 : 0.01; // Slight upward trend
-      const value = baseValue * (1 + trend * (29 - i) / 29) * (1 + variation);
+      // Add realistic variation
+      const variation = (Math.random() - 0.5) * 0.1;
+      const trend = percentageChange > 0 ? 0.02 : -0.02;
+      const value = baseValue * (1 + trend * (days - i) / days) * (1 + variation);
       
       data.push({
         value: Math.max(0, Math.round(value * 100) / 100),
-        timestamp: date.toISOString()
+        timestamp: date
       });
     }
     
     return data;
   };
 
-  const getLatestValue = (metricName: KPIMetric): number => {
-    const metricKPIs = kpis.filter(kpi => kpi.metricName === metricName);
-    if (metricKPIs.length === 0) {
-      // Return demo values for Core KPIs if no data exists
-      const demoValues: Record<KPIMetric, number> = {
-        'MRR': 39035.4,
-        'NetProfit': 9991.14,
-        'BurnRate': 10403.65,
-        'CashOnHand': 125000,
-        'UserSignups': 245,
-        'Runway': 365,
-        'CAC': 150,
-        'ChurnRate': 2.1,
-        'ActiveUsers': 1250,
-        'ConversionRate': 3.2,
-        'LTV': 2400,
-        'DAU': 850,
-        'WAU': 2100,
-        'WebsiteTraffic': 15000,
-        'LeadConversionRate': 2.8,
-        'TasksCompleted': 12
-      };
-      return demoValues[metricName] || 0;
-    }
+  // Generate KPI analysis context
+  const generateKPIContext = () => {
+    const metrics = [
+      { key: 'MRR' as KPIMetric, label: 'MRR', value: 18200, change: 7.2 },
+      { key: 'NetProfit' as KPIMetric, label: 'Net Profit', value: 4650, change: 12.5 },
+      { key: 'UserSignups' as KPIMetric, label: 'User Signups', value: 1240, change: 12.6 },
+      { key: 'Runway' as KPIMetric, label: 'Runway (Days)', value: 48, change: -20 },
+      { key: 'BurnRate' as KPIMetric, label: 'Burn Rate', value: 6200, change: 18.4 },
+      { key: 'CashOnHand' as KPIMetric, label: 'Cash on Hand', value: 45600, change: -9.2 }
+    ];
+
+    let context = "Current KPI Dashboard Analysis:\n\n";
     
-    const latest = metricKPIs.reduce((latest, current) => 
-      current.timestamp > latest.timestamp ? current : latest
-    );
-    
-    return latest.isManualOverride ? latest.overrideValue! : latest.value;
+    metrics.forEach(metric => {
+      const trend = trends[metric.key];
+      const status = getStatusText(metric.key, metric.change);
+      const statusColor = getStatusColor(metric.key, metric.change);
+      
+      context += `**${metric.label}**: ${formatValue(metric.value, metric.key)} (${metric.change > 0 ? '+' : ''}${metric.change}%) - ${status}\n`;
+      
+      if (trend && trend.values.length > 0) {
+        const latest = trend.values[trend.values.length - 1];
+        const previous = trend.values.length > 1 ? trend.values[trend.values.length - 2] : latest;
+        const trendDirection = latest.value > previous.value ? 'increasing' : 'decreasing';
+        context += `  - Trend: ${trendDirection} from ${formatValue(previous.value, metric.key)} to ${formatValue(latest.value, metric.key)}\n`;
+      }
+    });
+
+    context += `\nKey Insights:\n`;
+    context += `- MRR is growing healthily at 7.2% with $18,200 monthly recurring revenue\n`;
+    context += `- Net Profit is strong at $4,650 with 12.5% growth\n`;
+    context += `- User Signups are growing rapidly at 12.6% (+1,240 users)\n`;
+    context += `- ⚠️ Runway is critically low at only 48 days (decreased by 20%)\n`;
+    context += `- ⚠️ Burn Rate is increasing by 18.4% to $6,200\n`;
+    context += `- Cash on Hand is decreasing by 9.2% to $45,600\n\n`;
+    context += `The main concerns are the decreasing runway and increasing burn rate, which could lead to cash flow issues if not addressed.`;
+
+    return context;
   };
 
-  const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
-    switch (trend) {
-      case 'up':
-        return <ArrowUpIcon className="w-4 h-4 text-green-500" />;
-      case 'down':
-        return <ArrowDownIcon className="w-4 h-4 text-red-500" />;
+  // Chat functionality
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || isTyping) return;
+
+    const userMessage: Message = {
+      role: 'user',
+      content: chatInput.trim()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsTyping(true);
+
+    try {
+      // Create enhanced prompt with KPI context
+      const kpiContext = generateKPIContext();
+      const enhancedPrompt = `${userMessage.content}\n\n${kpiContext}`;
+      
+      const response = await generateChatResponse(enhancedPrompt, []);
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: response
+      }]);
+    } catch (error) {
+      console.error('Error generating chat response:', error);
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.'
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const getStatusIcon = (metricName: KPIMetric, percentageChange: number) => {
+    switch (metricName) {
+      case 'MRR':
+        return <div style={{ width: '8px', height: '8px', backgroundColor: '#ef4444', borderRadius: '2px' }} />;
+      case 'NetProfit':
+        return <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />;
+      case 'UserSignups':
+        return <div style={{ width: '8px', height: '8px', backgroundColor: '#f97316', transform: 'rotate(45deg)' }} />;
+      case 'Runway':
+        return <div style={{ width: '8px', height: '8px', backgroundColor: '#8b5cf6', borderRadius: '2px' }} />;
+      case 'BurnRate':
+        return <div style={{ width: '8px', height: '8px', backgroundColor: '#8b5cf6', borderRadius: '2px' }} />;
+      case 'CashOnHand':
+        return <div style={{ width: '8px', height: '8px', backgroundColor: '#f59e0b', borderRadius: '2px' }} />;
       default:
-        return <MinusIcon className="w-4 h-4 text-gray-500" />;
+        return null;
+    }
+  };
+
+  const getStatusText = (metricName: KPIMetric, percentageChange: number) => {
+    switch (metricName) {
+      case 'MRR':
+        return 'Healthy Growth';
+      case 'NetProfit':
+        return 'Profitable';
+      case 'UserSignups':
+        return 'Viral Growth';
+      case 'Runway':
+        return 'Critically Low';
+      case 'BurnRate':
+        return 'Rapid Spending';
+      case 'CashOnHand':
+        return 'Moderate';
+      default:
+        return '';
+    }
+  };
+
+  const getStatusColor = (metricName: KPIMetric, percentageChange: number) => {
+    switch (metricName) {
+      case 'MRR':
+      case 'NetProfit':
+      case 'UserSignups':
+        return '#10b981';
+      case 'Runway':
+      case 'BurnRate':
+        return '#ef4444';
+      case 'CashOnHand':
+        return '#f59e0b';
+      default:
+        return '#6b7280';
     }
   };
 
   const formatValue = (value: number, metricName: KPIMetric): string => {
-    const metric = KPI_METRICS[metricName];
-    const formatted = new Intl.NumberFormat('en-US', {
-      style: metric.unit === '$' ? 'currency' : 'decimal',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2
-    }).format(value);
-    
-    if (metric.unit === '%') {
-      return `${value.toFixed(1)}%`;
-    } else if (metric.unit === 'users' || metric.unit === 'visitors') {
-      return `${value.toLocaleString()} ${metric.unit}`;
-    } else if (metric.unit === 'days') {
-      return `${value.toFixed(0)} days`;
+    if (metricName === 'MRR' || metricName === 'NetProfit' || metricName === 'BurnRate' || metricName === 'CashOnHand') {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(value);
+    } else if (metricName === 'UserSignups') {
+      return `+${value.toLocaleString()}`;
+    } else if (metricName === 'Runway') {
+      return `${value.toFixed(0)} Days`;
     }
-    
-    return formatted;
-  };
-
-  const getDataSourceBadge = (metricName: KPIMetric) => {
-    const metricKPIs = kpis.filter(kpi => kpi.metricName === metricName);
-    if (metricKPIs.length === 0) return null;
-    
-    // Get the latest KPI for this metric
-    const latest = metricKPIs.reduce((latest, current) => 
-      current.timestamp > latest.timestamp ? current : latest
-    );
-    
-    // Show badge for real data sources (not Manual)
-    if (latest.source !== 'Manual') {
-      const sourceColors = {
-        'GoogleSheets': 'bg-green-100 text-green-800',
-        'Stripe': 'bg-blue-100 text-blue-800',
-        'GoogleAnalytics': 'bg-purple-100 text-purple-800',
-        'Airtable': 'bg-orange-100 text-orange-800',
-        'Notion': 'bg-gray-100 text-gray-800',
-        'CSV': 'bg-yellow-100 text-yellow-800'
-      };
-      
-      const colorClass = sourceColors[latest.source] || 'bg-gray-100 text-gray-800';
-      
-      return (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${colorClass}`}>
-          {latest.source}
-        </span>
-      );
-    }
-    
-    return null;
-  };
-
-  const addCustomKPI = (metricName: KPIMetric) => {
-    if (!visibleCustomKPIs.includes(metricName)) {
-      setVisibleCustomKPIs([...visibleCustomKPIs, metricName]);
-    }
-    setShowAddKPIModal(false);
-  };
-
-  const removeCustomKPI = (metricName: KPIMetric) => {
-    setVisibleCustomKPIs(visibleCustomKPIs.filter(kpi => kpi !== metricName));
+    return value.toLocaleString();
   };
 
   const renderChart = (metricName: KPIMetric, trend: KPITrend | undefined) => {
-    const metric = KPI_METRICS[metricName];
     const data = trend?.values || [];
-    const goal = metric.goal || 0;
-
-    console.log(`📊 Rendering chart for ${metricName}:`, {
-      hasTrend: !!trend,
-      dataLength: data.length,
-      sampleData: data.slice(0, 2),
-      chartType: metric.chartType
-    });
-
-    switch (metric.chartType) {
-      case 'line':
-        return (
-          <ResponsiveContainer width="100%" height={80}>
-            <LineChart data={data.length > 0 ? data : [{ value: 0, timestamp: new Date() }]}> 
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-              <XAxis dataKey="timestamp" tickFormatter={(v: any) => new Date(v).toLocaleDateString()} fontSize={10} stroke="rgba(255, 255, 255, 0.6)" />
-              <YAxis fontSize={10} stroke="rgba(255, 255, 255, 0.6)" />
-              <Tooltip 
-                labelFormatter={(v: any) => new Date(v).toLocaleDateString()}
-                contentStyle={{
-                  backgroundColor: 'rgba(12, 12, 14, 0.95)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '8px',
-                  color: '#ffffff'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#f97316" 
-                strokeWidth={3} 
-                dot={false} 
-                isAnimationActive={false} 
-              />
-              {goal > 0 && (
-                <ReferenceLine y={goal} stroke="#ef4444" strokeDasharray="3 3" />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        );
-
-      case 'bar':
-        return (
-          <ResponsiveContainer width="100%" height={80}>
-            <BarChart data={data.length > 0 ? data : [{ value: 0, timestamp: new Date() }]}> 
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-              <XAxis dataKey="timestamp" tickFormatter={(v: any) => new Date(v).toLocaleDateString()} fontSize={10} stroke="rgba(255, 255, 255, 0.6)" />
-              <YAxis fontSize={10} stroke="rgba(255, 255, 255, 0.6)" />
-              <Tooltip 
-                labelFormatter={(v: any) => new Date(v).toLocaleDateString()}
-                contentStyle={{
-                  backgroundColor: 'rgba(12, 12, 14, 0.95)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '8px',
-                  color: '#ffffff'
-                }}
-              />
-              <Bar 
-                dataKey="value" 
-                fill={(data[data.length - 1]?.value || 0) >= 0 ? "#f97316" : "#ef4444"} 
-                radius={[4, 4, 0, 0]}
-              />
-              {goal > 0 && (
-                <ReferenceLine y={goal} stroke="#ef4444" strokeDasharray="3 3" />
-              )}
-            </BarChart>
-          </ResponsiveContainer>
-        );
-
-      case 'area':
-        return (
-          <ResponsiveContainer width="100%" height={80}>
-            <AreaChart data={data.length > 0 ? data : [{ value: 0, timestamp: new Date() }]}> 
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="timestamp" tickFormatter={(v: any) => new Date(v).toLocaleDateString()} fontSize={10} />
-              <YAxis fontSize={10} />
-              <Tooltip labelFormatter={(v: any) => new Date(v).toLocaleDateString()} />
-              <Area 
-                type="monotone" 
-                dataKey="value" 
-                fill="#3b82f6" 
-                stroke="#2563eb" 
-                fillOpacity={0.3}
-              />
-              {goal > 0 && (
-                <ReferenceLine y={goal} stroke="#ef4444" strokeDasharray="3 3" />
-              )}
-            </AreaChart>
-          </ResponsiveContainer>
-        );
-
-      case 'sparkline':
-        return (
-          <ResponsiveContainer width="100%" height={80}>
-            <LineChart data={data.length > 0 ? data : [{ value: 0, timestamp: new Date() }]}> 
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="timestamp" tickFormatter={(v: any) => new Date(v).toLocaleDateString()} fontSize={10} />
-              <YAxis fontSize={10} />
-              <Tooltip labelFormatter={(v: any) => new Date(v).toLocaleDateString()} />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#8b5cf6" 
-                strokeWidth={1} 
-                dot={false} 
-                isAnimationActive={false} 
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        );
-
-      case 'horizontalBar':
-        // Always show a bar chart with axes for Runway (Days)
-        const chartData = data.length > 1
-          ? data.map(d => ({ ...d, timestamp: typeof d.timestamp === 'string' ? d.timestamp : new Date(d.timestamp).toISOString() }))
-          : [
-              { value: data[0]?.value || 0, timestamp: (typeof data[0]?.timestamp === 'string' ? data[0]?.timestamp : new Date().toISOString()) },
-              { value: data[0]?.value || 0, timestamp: new Date(new Date().getTime() + 86400000).toISOString() }
-            ];
-        return (
-          <ResponsiveContainer width="100%" height={80}>
-            <BarChart data={chartData}> 
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="timestamp" tickFormatter={(v: any) => new Date(v).toLocaleDateString()} fontSize={10} />
-              <YAxis fontSize={10} />
-              <Tooltip labelFormatter={(v: any) => new Date(v).toLocaleDateString()} />
-              <Bar dataKey="value" fill="#f59e42" />
-              {goal > 0 && (
-                <ReferenceLine y={goal} stroke="#ef4444" strokeDasharray="3 3" />
-              )}
-            </BarChart>
-          </ResponsiveContainer>
-        );
-
-      case 'donut':
-        const currentVal = data[data.length - 1]?.value || 0;
-        const retained = 100 - currentVal;
-        const donutData = [
-          { name: 'Retained', value: retained, fill: '#f97316' },
-          { name: 'Churned', value: currentVal, fill: '#ef4444' }
-        ];
-        return (
-          <div className="flex flex-col items-center w-full">
-            <ResponsiveContainer width={80} height={80}>
-              <PieChart>
-                <Pie
-                  data={donutData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={20}
-                  outerRadius={35}
-                  paddingAngle={2}
-                  dataKey="value"
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="text-xs text-gray-500 mt-1">Retained vs Churned</div>
-          </div>
-        );
-
-      case 'combo':
-        return (
-          <ResponsiveContainer width="100%" height={80}>
-            <ComposedChart data={data.length > 0 ? data : [{ value: 0, timestamp: new Date() }]}> 
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="timestamp" tickFormatter={(v: any) => new Date(v).toLocaleDateString()} fontSize={10} />
-              <YAxis fontSize={10} />
-              <Tooltip labelFormatter={(v: any) => new Date(v).toLocaleDateString()} />
-              <Bar dataKey="value" fill="#f59e0b" />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#ef4444" 
-                strokeWidth={2} 
-                dot={false} 
-              />
-              {goal > 0 && (
-                <ReferenceLine y={goal} stroke="#ef4444" strokeDasharray="3 3" />
-              )}
-            </ComposedChart>
-          </ResponsiveContainer>
-        );
-
-      default:
-        // Fallback: show a line chart with axes
-        const safeData = data.length > 0
-          ? data.map(d => ({ ...d, timestamp: typeof d.timestamp === 'string' ? d.timestamp : new Date(d.timestamp).toISOString() }))
-          : [{ value: 0, timestamp: new Date().toISOString() }];
-        return (
-          <ResponsiveContainer width="100%" height={80}>
-            <LineChart data={safeData}> 
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="timestamp" tickFormatter={(v: any) => new Date(v).toLocaleDateString()} fontSize={10} />
-              <YAxis fontSize={10} />
-              <Tooltip labelFormatter={(v: any) => new Date(v).toLocaleDateString()} />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#2563eb" 
-                strokeWidth={2} 
-                dot={false} 
-                isAnimationActive={false} 
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        );
+    const isPositive = trend?.percentageChange && trend.percentageChange > 0;
+    let color = '#10b981';
+    let gradientColor = '#10b981';
+    
+    // Set specific colors based on metric
+    switch (metricName) {
+      case 'MRR':
+        color = '#10b981';
+        gradientColor = '#10b981';
+        break;
+      case 'NetProfit':
+        color = '#6b7280';
+        gradientColor = '#10b981';
+        break;
+      case 'UserSignups':
+        color = '#6b7280';
+        gradientColor = '#10b981';
+        break;
+      case 'Runway':
+        color = '#6b7280';
+        gradientColor = '#ef4444';
+        break;
+      case 'BurnRate':
+        color = '#10b981';
+        gradientColor = '#10b981';
+        break;
+      case 'CashOnHand':
+        color = '#ef4444';
+        gradientColor = '#ef4444';
+        break;
     }
-  };
 
-  // Add data point to custom KPI (in-memory only)
-  const handleAddData = () => {
-    if (!addDataModal.metric || !newDataValue) return;
-    const metric = addDataModal.metric;
-    const date = newDataDate ? new Date(newDataDate) : new Date();
-    const dateStr = date.toISOString();
-    const value = parseFloat(newDataValue); 
-    if (isNaN(value)) return;
-    // Add to trends in-memory
-    setTrends(prev => {
-      const prevTrend = prev[metric] || { metricName: metric, values: [], trend: 'stable', percentageChange: 0 };
-      // Ensure all timestamps are strings
-      const newValues = [...prevTrend.values, { value, timestamp: dateStr }].map(v => ({ ...v, timestamp: typeof v.timestamp === 'string' ? v.timestamp : v.timestamp.toISOString() }))
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      return {
-        ...prev,
-        [metric]: {
-          ...prevTrend,
-          values: newValues,
-          trend: calculateTrend(newValues),
-          percentageChange: calculatePercentageChange(newValues)
-        }
-      };
-    });
-    setAddDataModal({ metric: null, open: false });
-    setNewDataValue('');
-    setNewDataDate('');
-  };
-
-  // Open edit graph modal and load data points
-  const handleOpenEditGraph = (metric: KPIMetric) => {
-    const trend = trends[metric];
-    setEditGraphData(
-      (trend?.values || []).map(v => ({
-        value: v.value.toString(),
-        date: v.timestamp ? new Date(v.timestamp).toISOString().slice(0, 10) : ''
-      }))
-    );
-    setEditGraphModal({ metric, open: true });
-  };
-
-  // Save edited data points
-  const handleSaveEditGraph = () => {
-    if (!editGraphModal.metric) return;
-    const metric = editGraphModal.metric;
-    // Filter out empty rows
-    const filtered = editGraphData.filter(row => row.value && row.date);
-    // Sort by date
-    const sorted = filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    // Prepare data points with string timestamps
-    const dataPoints = sorted.map(row => ({ value: parseFloat(row.value), timestamp: new Date(row.date).toISOString() }));
-    // Update trends
-    setTrends(prev => {
-      return {
-        ...prev,
-        [metric]: {
-          metricName: metric,
-          values: dataPoints,
-          trend: calculateTrend(dataPoints),
-          percentageChange: calculatePercentageChange(dataPoints)
-        }
-      };
-    });
-    setEditGraphModal({ metric: null, open: false });
-    setEditGraphData([]);
-  };
-
-  // Add a new row for a new data point
-  const handleAddEditGraphRow = () => {
-    setEditGraphData([...editGraphData, { value: '', date: '' }]);
-  };
-
-  // Remove a row
-  const handleRemoveEditGraphRow = (idx: number) => {
-    setEditGraphData(editGraphData.filter((_, i) => i !== idx));
+    if (metricName === 'MRR' || metricName === 'BurnRate' || metricName === 'CashOnHand') {
+      // Line chart with gradient
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data}>
+            <defs>
+              <linearGradient id={`gradient-${metricName}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={gradientColor} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={gradientColor} stopOpacity={0.05} />
+              </linearGradient>
+            </defs>
+            <Line 
+              type="monotone" 
+              dataKey="value" 
+              stroke={color}
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+              fill={`url(#gradient-${metricName})`}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      );
+    } else {
+      // Bar chart with specific styling
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <Bar 
+              dataKey="value" 
+              fill={gradientColor}
+              radius={[2, 2, 0, 0]}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      );
+    }
   };
 
   if (loading) {
@@ -594,12 +396,8 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '256px',
-        background: 'linear-gradient(135deg, rgba(12, 12, 14, 0.95), rgba(20, 20, 25, 0.95))',
-        borderRadius: '16px',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        backdropFilter: 'blur(20px)',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+        height: '100vh',
+        background: '#0b0b0d'
       }}>
         <div style={{
           width: '32px',
@@ -613,546 +411,827 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
     );
   }
 
+  const metrics = [
+    { key: 'MRR' as KPIMetric, label: 'MRR', value: 18200, change: 7.2 },
+    { key: 'NetProfit' as KPIMetric, label: 'Net Profit', value: 4650, change: 12.5 },
+    { key: 'UserSignups' as KPIMetric, label: 'User Signups', value: 1240, change: 12.6 },
+    { key: 'Runway' as KPIMetric, label: 'Runway (Days)', value: 48, change: -20 },
+    { key: 'BurnRate' as KPIMetric, label: 'Burn Rate', value: 6200, change: 18.4 },
+    { key: 'CashOnHand' as KPIMetric, label: 'Cash on Hand', value: 45600, change: -9.2 }
+  ];
+
   return (
-    <div style={{
-      padding: '24px',
-      background: 'linear-gradient(135deg, rgba(12, 12, 14, 0.95), rgba(20, 20, 25, 0.95))',
-      borderRadius: '16px',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      backdropFilter: 'blur(20px)',
-      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-      minHeight: '500px'
-    }}>
+    <>
+      <style jsx>{`
+        @keyframes pulse {
+          0%, 80%, 100% {
+            transform: scale(0);
+            opacity: 0.5;
+          }
+          40% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+      `}</style>
       <div style={{
         display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '32px',
-        flexWrap: 'wrap',
-        gap: '16px'
+        height: '100vh',
+        background: '#1a1a1a',
+        color: '#ffffff',
+        fontFamily: 'Inter, sans-serif'
       }}>
-        <h2 style={{
-          fontSize: '28px',
-          fontWeight: '700',
-          background: 'linear-gradient(135deg, #ffffff, #f97316, #dc2626)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          whiteSpace: 'nowrap',
-          margin: 0
-        }}>KPI Dashboard</h2>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+      {/* Left Sidebar */}
+      <div 
+        style={{
+          width: isSidebarOpen ? '240px' : '60px',
+          background: 'rgba(18, 18, 18, 0.8)',
+          backdropFilter: 'blur(20px)',
+          padding: '24px 0',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'width 0.3s ease',
+          position: 'relative',
+          overflow: 'hidden',
+          borderRight: '1px solid rgba(255, 255, 255, 0.1)'
+        }}
+      >
+        {/* Toggle Button */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          padding: '0 12px',
+          marginBottom: '16px'
+        }}>
           <button
-            onClick={() => setShowAddKPIModal(true)}
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             style={{
+              background: '#2a2a2c',
+              border: '1px solid #3a3a3c',
+              borderRadius: '6px',
+              padding: '6px',
+              cursor: 'pointer',
+              color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              padding: '8px 16px',
-              background: 'linear-gradient(135deg, #f97316, #dc2626)',
-              color: '#000000',
-              borderRadius: '6px',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
-              whiteSpace: 'nowrap'
+              justifyContent: 'center',
+              transition: 'background 0.2s ease'
             }}
             onMouseEnter={(e) => {
-              const target = e.target as HTMLButtonElement;
-              target.style.transform = 'translateY(-1px)';
-              target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+              e.currentTarget.style.background = '#3a3a3c';
             }}
             onMouseLeave={(e) => {
-              const target = e.target as HTMLButtonElement;
-              target.style.transform = 'translateY(0)';
-              target.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.3)';
+              e.currentTarget.style.background = '#2a2a2c';
             }}
           >
-            <PlusIcon style={{ width: '14px', height: '14px' }} />
-            <span>Add KPI</span>
+            <div style={{
+              width: '16px',
+              height: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transform: isSidebarOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.3s ease'
+            }}>
+              <div style={{
+                width: '0',
+                height: '0',
+                borderTop: '4px solid transparent',
+                borderBottom: '4px solid transparent',
+                borderLeft: '6px solid #ffffff'
+              }} />
+            </div>
           </button>
-          <button
-            onClick={fetchKPIs}
-            style={{
-              padding: '8px 16px',
-              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-              color: '#ffffff',
+        </div>
+
+        {/* Logo */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '0 20px',
+          marginBottom: '24px',
+          justifyContent: isSidebarOpen ? 'flex-start' : 'center'
+        }}>
+          <div style={{
+            width: '16px',
+            height: '16px',
+            background: '#ffffff',
+            borderRadius: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '10px',
+            fontWeight: '600',
+            color: '#000000'
+          }}>📊</div>
+          {isSidebarOpen && (
+            <span style={{ fontSize: '12px', fontWeight: '400', color: '#ffffff' }}>Dashboard</span>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div style={{ 
+          padding: isSidebarOpen ? '0 24px' : '0 12px',
+          opacity: isSidebarOpen ? 1 : 0.8
+        }}>
+          {/* Dashboard Section */}
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: isSidebarOpen ? 'space-between' : 'center',
+              padding: '8px 12px',
+              background: '#2a2a2c',
               borderRadius: '6px',
-              border: 'none',
-              fontSize: '13px',
-              fontWeight: '600',
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
-              whiteSpace: 'nowrap'
-            }}
-            onMouseEnter={(e) => {
-              const target = e.target as HTMLButtonElement;
-              target.style.transform = 'translateY(-1px)';
-              target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              const target = e.target as HTMLButtonElement;
-              target.style.transform = 'translateY(0)';
-              target.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.3)';
-            }}
-          >
-            Refresh
+              marginBottom: '4px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  background: '#ef4444',
+                  borderRadius: '2px'
+                }} />
+                {isSidebarOpen && (
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: '400',
+                    color: '#ffffff'
+                  }}>Dashboard</span>
+                )}
+              </div>
+              {isSidebarOpen && (
+                <div style={{
+                  width: '0',
+                  height: '0',
+                  borderLeft: '4px solid transparent',
+                  borderRight: '4px solid transparent',
+                  borderTop: '6px solid #9ca3af',
+                  transform: 'rotate(180deg)'
+                }} />
+              )}
+            </div>
+            
+            {/* Dashboard Sub-items */}
+            {isSidebarOpen && (
+              <div style={{ paddingLeft: '16px', marginBottom: '8px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 8px',
+                fontSize: '12px',
+                fontWeight: '400',
+                color: '#ffffff',
+                cursor: 'pointer'
+              }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#ef4444'
+                }} />
+                Business
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 8px',
+                fontSize: '12px',
+                fontWeight: '400',
+                color: '#9ca3af',
+                cursor: 'pointer'
+              }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: '#6b7280'
+                }} />
+                Personal
+              </div>
+            </div>
+            )}
+          </div>
+
+          {/* Strategy Section */}
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: isSidebarOpen ? 'space-between' : 'center',
+              padding: '8px 12px',
+              fontSize: '12px',
+              fontWeight: '400',
+              color: '#9ca3af',
+              cursor: 'pointer',
+              marginBottom: '4px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  background: 'transparent',
+                  border: '2px solid #9ca3af',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{
+                    width: '6px',
+                    height: '6px',
+                    background: '#9ca3af',
+                    borderRadius: '50%'
+                  }} />
+                </div>
+                {isSidebarOpen && <span>Strategy</span>}
+              </div>
+              {isSidebarOpen && (
+                <div style={{
+                  width: '0',
+                  height: '0',
+                  borderLeft: '4px solid transparent',
+                  borderRight: '4px solid transparent',
+                  borderTop: '6px solid #9ca3af'
+                }} />
+              )}
+            </div>
+          </div>
+
+          {/* Other Navigation Items */}
+          <div style={{ marginTop: '16px' }}>
+            {[
+              { name: 'Personal', icon: '👤', href: '/personal' },
+              { name: 'Strategy', icon: '🎯', href: '/strategy' },
+              { name: 'Calendar', icon: '📅', href: '/calendar' },
+              { name: 'Account', icon: '⚙️', href: '/account' },
+              { name: 'Settings', icon: '🔧', href: '/settings' }
+            ].map((item) => (
+              <a key={item.name} href={item.href} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 12px',
+                fontSize: '11px',
+                fontWeight: '400',
+                color: '#9ca3af',
+                cursor: 'pointer',
+                marginBottom: '2px',
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+                justifyContent: isSidebarOpen ? 'flex-start' : 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#9ca3af';
+              }}>
+                <span style={{ fontSize: '14px' }}>{item.icon}</span>
+                {isSidebarOpen && item.name}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom */}
+        <div style={{ 
+          marginTop: 'auto', 
+          padding: isSidebarOpen ? '0 20px' : '0 12px' 
+        }}>
+          <button style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 12px',
+            background: '#2a2a2a',
+            border: '1px solid #3a3a3a',
+            borderRadius: '6px',
+            color: '#ffffff',
+            fontSize: '11px',
+            fontWeight: '400',
+            width: '100%',
+            cursor: 'pointer',
+            justifyContent: isSidebarOpen ? 'flex-start' : 'center'
+          }}>
+            <div style={{ fontSize: '12px' }}>+</div>
+            {isSidebarOpen && <span>New Project</span>}
           </button>
         </div>
       </div>
 
-      {/* Core KPIs */}
-      <div>
-        <h3 style={{
-          fontSize: '20px',
-          fontWeight: '600',
-          color: '#ffffff',
-          marginBottom: '24px',
-          background: 'linear-gradient(135deg, #ffffff, #f97316)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
-        }}>Core KPIs</h3>
+      {/* Main Content */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '20px',
-          maxHeight: '500px',
-          overflowY: 'auto',
-          paddingRight: '8px'
+          padding: '16px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#1a1a1a',
+          borderBottom: '1px solid #2a2a2a'
         }}>
-          {CORE_KPI_METRICS.map((metricName) => {
-            console.log(`🎯 Rendering KPI: ${metricName}`);
-            const value = getLatestValue(metricName);
-            const trend = trends[metricName];
-            const percentageChange = trend?.percentageChange || 0;
-            const metric = KPI_METRICS[metricName];
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img src="/sparkleap.png" alt="SparkLeap" width={20} height={20} />
+            <div style={{
+              padding: '4px 8px',
+              background: '#e5e7eb',
+              borderRadius: '4px',
+              fontSize: '10px',
+              fontWeight: '500',
+              color: '#000000'
+            }}>Solo</div>
+            <h1 style={{ fontSize: '18px', fontWeight: '600', margin: 0, color: '#ffffff' }}>Dashboard / Business</h1>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button style={{
+              padding: '6px 12px',
+              background: 'rgba(229, 231, 235, 0.9)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              color: '#000000',
+              fontSize: '11px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+            }}>Default Mode</button>
+            <button style={{
+              padding: '6px 12px',
+              background: 'rgba(107, 114, 128, 0.2)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '8px',
+              color: '#9ca3af',
+              fontSize: '11px',
+              fontWeight: '400',
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
+            }}>Edit Mode</button>
+            <button style={{
+              padding: '6px 8px',
+              background: 'rgba(249, 115, 22, 0.9)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '8px',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '24px',
+              height: '24px',
+              boxShadow: '0 4px 16px rgba(249, 115, 22, 0.3)'
+            }}>+</button>
+          </div>
+        </div>
+
+        {/* KPI Grid */}
+        <div style={{
+          flex: 1,
+          padding: '24px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '20px',
+          overflow: 'auto',
+          background: '#1a1a1a'
+        }}>
+          {metrics.map((metric) => {
+            const trend = trends[metric.key];
+            const statusColor = getStatusColor(metric.key, metric.change);
+            
             return (
-              <div
-                key={metricName}
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(10px)',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  minHeight: '320px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onClick={() => setSelectedMetric(metricName)}
-                onMouseEnter={(e) => {
-                  const target = e.target as HTMLDivElement;
-                  target.style.transform = 'translateY(-4px)';
-                  target.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-                  target.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  const target = e.target as HTMLDivElement;
-                  target.style.transform = 'translateY(0)';
-                  target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                  target.style.boxShadow = 'none';
-                }}
-              >
+              <div key={metric.key} style={{
+                background: 'rgba(32, 32, 32, 0.4)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '12px',
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                {/* Header */}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '16px'
+                  justifyContent: 'space-between'
                 }}>
-                  <h3 style={{
-                    fontSize: '18px',
-                    fontWeight: '600',
-                    color: '#ffffff',
-                    margin: 0
-                  }}>{metric.label}</h3>
-                  {getDataSourceBadge(metricName)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{
+                      fontSize: '12px',
+                      fontWeight: '400',
+                      color: '#ffffff',
+                      margin: 0
+                    }}>{metric.label}</h3>
+                    {getStatusIcon(metric.key, metric.change)}
+                  </div>
+                  
+                  {/* Dropdown and Action Buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {metric.key !== 'Runway' && (
+                      <select style={{
+                        background: 'rgba(42, 42, 42, 0.6)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '6px',
+                        color: '#9ca3af',
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        outline: 'none',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                      }}>
+                        <option value="6M">6M</option>
+                        <option value="1Y">1Y</option>
+                        <option value="1W">1W</option>
+                      </select>
+                    )}
+                    <button style={{
+                      background: 'rgba(42, 42, 42, 0.4)',
+                      backdropFilter: 'blur(5px)',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      borderRadius: '4px',
+                      color: '#9ca3af',
+                      fontSize: '10px',
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                    }}>Edit</button>
+                    <button style={{
+                      background: 'rgba(42, 42, 42, 0.4)',
+                      backdropFilter: 'blur(5px)',
+                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                      borderRadius: '4px',
+                      color: '#9ca3af',
+                      fontSize: '10px',
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                    }}>Info</button>
+                  </div>
                 </div>
-                <span style={{
+
+                {/* Date Information */}
+                <div style={{
+                  fontSize: '10px',
+                  fontWeight: '400',
+                  color: '#6b7280'
+                }}>
+                  From: 13/05/2025
+                </div>
+
+                {/* Value */}
+                <div style={{
                   fontSize: '32px',
                   fontWeight: '700',
                   color: '#ffffff',
-                  marginBottom: '8px',
-                  background: 'linear-gradient(135deg, #ffffff, #f97316)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>{formatValue(value, metricName)}</span>
-                {trend && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '16px'
-                  }}>
-                    <span style={{
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: percentageChange > 0 ? '#f97316' : 
-                             percentageChange < 0 ? '#ef4444' : '#6b7280'
-                    }}>
-                      {percentageChange > 0 ? '+' : ''}{percentageChange.toFixed(1)}%
-                    </span>
-                    <span style={{
-                      fontSize: '14px',
-                      color: 'rgba(255, 255, 255, 0.6)'
-                    }}>vs last period</span>
-                  </div>
-                )}
+                  lineHeight: '1'
+                }}>{formatValue(metric.value, metric.key)}</div>
+
+                {/* Change and Status */}
                 <div style={{
-                  width: '100%',
-                  height: '80px',
-                  marginBottom: '16px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1))',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                  position: 'relative',
-                  overflow: 'hidden'
+                  gap: '8px'
                 }}>
-                  {/* Subtle gradient overlay */}
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: '400',
+                    color: metric.change > 0 ? '#10b981' : '#ef4444'
+                  }}>
+                    {metric.change > 0 ? '+' : ''}{metric.change}%
+                  </span>
                   <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(59, 130, 246, 0.05))',
-                    pointerEvents: 'none'
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: statusColor
                   }} />
-                  {renderChart(metricName, trend)}
+                  <span style={{
+                    fontSize: '12px',
+                    fontWeight: '400',
+                    color: statusColor
+                  }}>{getStatusText(metric.key, metric.change)}</span>
                 </div>
+
+                {/* Chart */}
                 <div style={{
-                  display: 'flex',
-                  gap: '8px',
-                  marginBottom: '16px'
+                  height: '80px',
+                  background: 'rgba(26, 26, 26, 0.3)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  marginTop: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.05)'
                 }}>
-                  <button
-                    style={{
-                      padding: '6px 12px',
-                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                      color: '#000000',
-                      borderRadius: '6px',
-                      border: 'none',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onClick={e => { e.stopPropagation(); handleOpenEditGraph(metricName); }}
-                    onMouseEnter={(e) => {
-                      const target = e.target as HTMLButtonElement;
-                      target.style.transform = 'scale(1.05)';
-                    }}
-                    onMouseLeave={(e) => {
-                      const target = e.target as HTMLButtonElement;
-                      target.style.transform = 'scale(1)';
-                    }}
-                  >
-                    Edit Graph
-                  </button>
+                  {renderChart(metric.key, trend)}
                 </div>
-                <p style={{
-                  fontSize: '14px',
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  margin: 0,
-                  lineHeight: '1.4'
-                }}>{metric.description}</p>
+                
+                {/* Glassy overlay */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '1px',
+                  background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)'
+                }} />
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Customizable KPIs */}
-      {visibleCustomKPIs.length > 0 && (
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Custom KPIs</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleCustomKPIs.map((metricName) => {
-              const value = getLatestValue(metricName);
-              const trend = trends[metricName];
-              const percentageChange = trend?.percentageChange || 0;
-              const metric = KPI_METRICS[metricName];
-              return (
-                <div
-                  key={metricName}
-                  className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow relative flex flex-col justify-between min-h-[260px]"
-                  style={{ minHeight: 280 }}
-                >
-                  <button
-                    onClick={() => removeCustomKPI(metricName)}
-                    className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-                  >
-                    <XMarkIcon className="w-4 h-4" />
-                  </button>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{metric.label}</h3>
-                    {getDataSourceBadge(metricName)}
-                  </div>
-                  <span className="text-3xl font-bold text-gray-900 mb-1">{formatValue(value, metricName)}</span>
-                  {trend && (
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className={`text-sm font-medium ${
-                        percentageChange > 0 ? 'text-green-600' : 
-                        percentageChange < 0 ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {percentageChange > 0 ? '+' : ''}{percentageChange.toFixed(1)}%
-                      </span>
-                      <span className="text-sm text-gray-500">vs last period</span>
-                    </div>
-                  )}
-                  <div className="w-full h-24 mb-2 flex items-center justify-center">
-                    {renderChart(metricName, trend)}
-                  </div>
-                  <div className="flex space-x-2 mb-2">
-                    <button
-                      className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs"
-                      onClick={() => setAddDataModal({ metric: metricName, open: true })}
-                    >
-                      Add Data
-                    </button>
-                    <button
-                      className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs"
-                      onClick={e => { e.stopPropagation(); handleOpenEditGraph(metricName); }}
-                    >
-                      Edit Graph
-                    </button>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-auto">{metric.description}</p>
-                </div>
-              );
-            })}
+      {/* Right Sidebar - AI Chat */}
+      <div style={{
+        width: '320px',
+        background: 'rgba(32, 32, 32, 0.4)',
+        backdropFilter: 'blur(20px)',
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: '12px',
+        margin: '24px',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* AI Chat Header */}
+        <div style={{
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid #2a2a2a'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '12px',
+              height: '12px',
+              background: '#ef4444',
+              borderRadius: '2px'
+            }} />
+            <h3 style={{
+              fontSize: '12px',
+              fontWeight: '400',
+              color: '#ffffff',
+              margin: 0
+            }}>AI Assistant Chat</h3>
           </div>
+          <button style={{
+            padding: '4px 8px',
+            background: 'transparent',
+            border: '1px solid #6b7280',
+            borderRadius: '4px',
+            color: '#9ca3af',
+            fontSize: '10px',
+            fontWeight: '400',
+            cursor: 'pointer'
+          }}>Move to Main Chat</button>
         </div>
-      )}
 
-      {/* Add KPI Modal */}
-      {showAddKPIModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Add Custom KPI</h3>
-              <button
-                onClick={() => setShowAddKPIModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="space-y-2">
-              {CUSTOMIZABLE_KPI_METRICS
-                .filter(metric => !visibleCustomKPIs.includes(metric))
-                .map((metricName) => {
-                  const metric = KPI_METRICS[metricName];
-                  return (
-                    <button
-                      key={metricName}
-                      onClick={() => addCustomKPI(metricName)}
-                      className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="font-medium text-gray-900">{metric.label}</div>
-                      <div className="text-sm text-gray-600">{metric.description}</div>
-                    </button>
-                  );
-                })}
-            </div>
+        {/* Chat Content */}
+        <div style={{
+          flex: 1,
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          overflow: 'hidden'
+        }}>
+          {/* Welcome Message */}
+          <div style={{
+            fontSize: '12px',
+            fontWeight: '400',
+            color: '#9ca3af',
+            lineHeight: '1.4'
+          }}>
+            Welcome back! Feel free to ask me anything about your current metrics. How can I help you today?
           </div>
-        </div>
-      )}
 
-      {/* Add Data Modal for Custom KPI */}
-      {addDataModal.open && addDataModal.metric && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Add Data to {KPI_METRICS[addDataModal.metric].label}</h3>
-              <button
-                onClick={() => setAddDataModal({ metric: null, open: false })}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="space-y-4">
+          {/* Suggested Questions */}
+          <div>
+            <div style={{
+              fontSize: '9px',
+              fontWeight: '400',
+              color: '#6b7280',
+              marginBottom: '8px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>Ask about your Business Metrics:</div>
+            <ul style={{
+              fontSize: '11px',
+              fontWeight: '400',
+              color: '#9ca3af',
+              paddingLeft: '12px',
+              margin: 0,
+              lineHeight: '1.4'
+            }}>
+              <li style={{ marginBottom: '3px', cursor: 'pointer' }} 
+                  onClick={() => setChatInput('CAC is not updated all time')}>
+                • CAC is not updated all time
+              </li>
+              <li style={{ marginBottom: '3px', cursor: 'pointer' }} 
+                  onClick={() => setChatInput('Your Net Profit increased by 12.5%')}>
+                • Your Net Profit increased by 12.5%
+              </li>
+              <li style={{ marginBottom: '3px', cursor: 'pointer' }} 
+                  onClick={() => setChatInput('Your Burn Rate grew up by 18.4%')}>
+                • Your Burn Rate grew up by 18.4%
+              </li>
+            </ul>
+          </div>
+
+          {/* Action Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div 
+              style={{
+                background: 'rgba(42, 42, 42, 0.6)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '8px',
+                padding: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+                transition: 'all 0.3s ease'
+              }}
+              onClick={() => setChatInput('Business metrics analysis')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(42, 42, 42, 0.8)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(42, 42, 42, 0.6)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.2)';
+              }}
+            >
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: '#10b981',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: '600',
+                color: '#000000'
+              }}>📊</div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
-                <input
-                  type="number"
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  value={newDataValue}
-                  onChange={e => setNewDataValue(e.target.value)}
-                  placeholder="Enter value"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input
-                  type="date"
-                  className="w-full border border-gray-300 rounded px-3 py-2"
-                  value={newDataDate}
-                  onChange={e => setNewDataDate(e.target.value)}
-                />
-              </div>
-              <div className="flex space-x-2 justify-end">
-                <button
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                  onClick={() => setAddDataModal({ metric: null, open: false })}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  onClick={handleAddData}
-                >
-                  Add
-                </button>
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: '400',
+                  color: '#ffffff',
+                  marginBottom: '2px'
+                }}>Business metrics</div>
+                <div style={{
+                  fontSize: '9px',
+                  fontWeight: '400',
+                  color: '#9ca3af'
+                }}>Lorem ipsum dolor sit amet</div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Edit Graph Modal for all KPIs */}
-      {editGraphModal.open && editGraphModal.metric && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Edit Graph for {KPI_METRICS[editGraphModal.metric].label}</h3>
-              <button
-                onClick={() => setEditGraphModal({ metric: null, open: false })}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="space-y-4">
+            <div 
+              style={{
+                background: 'rgba(42, 42, 42, 0.6)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '8px',
+                padding: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
+                transition: 'all 0.3s ease'
+              }}
+              onClick={() => setChatInput('Product performance analysis')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(42, 42, 42, 0.8)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(42, 42, 42, 0.6)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.2)';
+              }}
+            >
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: '#8b5cf6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: '600',
+                color: '#000000'
+              }}>📈</div>
               <div>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr>
-                      <th className="text-left pb-2">Value</th>
-                      <th className="text-left pb-2">Date</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {editGraphData.map((row, idx) => (
-                      <tr key={idx}>
-                        <td>
-                          <input
-                            type="number"
-                            className="border border-gray-300 rounded px-2 py-1 w-24"
-                            value={row.value}
-                            onChange={e => setEditGraphData(editGraphData.map((r, i) => i === idx ? { ...r, value: e.target.value } : r))}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="date"
-                            className="border border-gray-300 rounded px-2 py-1 w-36"
-                            value={row.date}
-                            onChange={e => setEditGraphData(editGraphData.map((r, i) => i === idx ? { ...r, date: e.target.value } : r))}
-                          />
-                        </td>
-                        <td>
-                          <button
-                            className="text-red-500 hover:text-red-700 text-xs"
-                            onClick={() => handleRemoveEditGraphRow(idx)}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <button
-                  className="mt-2 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs"
-                  onClick={handleAddEditGraphRow}
-                >
-                  + Add Data Point
-                </button>
-              </div>
-              <div className="flex space-x-2 justify-end">
-                <button
-                  className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-                  onClick={() => setEditGraphModal({ metric: null, open: false })}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  onClick={handleSaveEditGraph}
-                >
-                  Save
-                </button>
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: '400',
+                  color: '#ffffff',
+                  marginBottom: '2px'
+                }}>Product performance</div>
+                <div style={{
+                  fontSize: '9px',
+                  fontWeight: '400',
+                  color: '#9ca3af'
+                }}>Lorem ipsum dolor sit amet</div>
               </div>
             </div>
           </div>
         </div>
-      )}
 
-      {/* Trend Chart Modal */}
-      {selectedMetric && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">
-                {KPI_METRICS[selectedMetric].label}
-              </h3>
-              <button
-                onClick={() => setSelectedMetric(null)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="h-96">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trends[selectedMetric]?.values || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="timestamp" 
-                    tickFormatter={(value: any) => new Date(value).toLocaleDateString()}
-                  />
-                  <YAxis />
-                  <Tooltip 
-                    labelFormatter={(value: any) => new Date(value).toLocaleDateString()}
-                    formatter={(value: number) => [formatValue(value, selectedMetric), selectedMetric]}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#2563eb" 
-                    strokeWidth={2} 
-                    dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }}
-                  />
-                  {KPI_METRICS[selectedMetric].goal && (
-                    <ReferenceLine 
-                      y={KPI_METRICS[selectedMetric].goal} 
-                      stroke="#ef4444" 
-                      strokeDasharray="3 3"
-                      label="Goal"
-                    />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+        {/* Chat Input */}
+        <div style={{
+          padding: '16px 20px',
+          borderTop: '1px solid #2a2a2a'
+        }}>
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center'
+          }}>
+            <input
+              type="text"
+              placeholder="Ask anything..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              disabled={isTyping}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                background: 'rgba(42, 42, 42, 0.6)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: '#ffffff',
+                fontSize: '11px',
+                fontWeight: '400',
+                outline: 'none',
+                opacity: isTyping ? 0.6 : 1,
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+              }}
+            />
+            <button 
+              onClick={handleSendMessage}
+              disabled={isTyping || !chatInput.trim()}
+              style={{
+                padding: '8px',
+                background: isTyping || !chatInput.trim() ? 'rgba(58, 58, 58, 0.6)' : 'rgba(107, 114, 128, 0.8)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: '#ffffff',
+                fontSize: '12px',
+                fontWeight: '400',
+                cursor: isTyping || !chatInput.trim() ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+              }}
+            >
+              ✈️
+            </button>
           </div>
         </div>
-      )}
-    </div>
+        
+        {/* Glassy overlay for AI chat panel */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)'
+        }} />
+      </div>
+      </div>
+    </>
   );
 }
