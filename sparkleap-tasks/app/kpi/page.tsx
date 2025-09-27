@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import KPIDashboard from '@/components/KPIDashboard';
 import NotionConnect from '@/components/NotionConnect';
 import GoogleSheetsConnect from '@/components/GoogleSheetsConnect';
+import StripeConnect from '@/components/StripeConnect';
 import Navigation from '@/components/Navigation';
 
 export default function KPIPage() {
@@ -123,6 +124,26 @@ export default function KPIPage() {
           }}>
             <GoogleSheetsConnect onDataGenerated={handleDataGenerated} />
           </div>
+          <div style={{
+            background: "linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))",
+            borderRadius: "20px",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            backdropFilter: "blur(20px)",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+            padding: "24px",
+            overflow: "hidden"
+          }}>
+            <StripeConnect onDataGenerated={handleDataGenerated} />
+          </div>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))',
+            borderRadius: '20px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+            padding: '24px',
+            overflow: 'hidden'
+          }}></div>
         </div>
       </div>
     </div>

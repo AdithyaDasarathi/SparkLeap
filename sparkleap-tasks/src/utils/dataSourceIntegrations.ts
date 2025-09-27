@@ -1,5 +1,6 @@
 import { DataSource, KPIMetric } from '../types/kpi';
 import { DatabaseService } from './database';
+import Stripe from 'stripe';
 
 export interface IntegrationResult {
   success: boolean;
@@ -23,30 +24,62 @@ export abstract class DataSourceIntegration {
 }
 
 export class StripeIntegration extends DataSourceIntegration {
+  private stripe: Stripe;
+
+  constructor(credentials: string, userId: string) {
+    super(credentials, userId);
+    this.stripe = new Stripe(credentials, {
+      apiVersion: '2023-10-16',
+    });
+  }
+
   async sync(): Promise<IntegrationResult> {
     try {
-      // Mock Stripe API call - replace with actual Stripe SDK
-      // const stripe = require('stripe')(this.credentials);
-      
       // Get subscription data for MRR calculation
-      // const subscriptions = await stripe.subscriptions.list({
-      //   status: 'active',
-      //   limit: 100
-      // });
+      const subscriptions = await this.stripe.subscriptions.list({
+        status: 'active',
+        limit: 100
+      });
 
-      // Mock data for MVP
+      // Get customer data
+      const customers = await this.stripe.customers.list({
+        limit: 100
+      });
+
+      // Get payment intents for revenue data
+      const paymentIntents = await this.stripe.paymentIntents.list({
+        limit: 100
+      });
+
+      // Calculate MRR from active subscriptions
+      let mrr = 0;
+      subscriptions.data.forEach(sub => {
+        if (sub.items.data.length > 0) {
+          const price = sub.items.data[0].price;
+          if (price.unit_amount) {
+            mrr += price.unit_amount / 100; // Convert from cents
+          }
+        }
+      });
+
+      // Calculate other metrics
+      const totalCustomers = customers.data.length;
+      const totalRevenue = paymentIntents.data
+        .filter(pi => pi.status === 'succeeded')
+        .reduce((sum, pi) => sum + (pi.amount / 100), 0);
+
       const data: Record<KPIMetric, number> = {
-        MRR: 12500,
-        NetProfit: 8500,
-        BurnRate: 4200,
-        CashOnHand: 125000,
-        UserSignups: 450,
-        Runway: 365,
-        CAC: 150,
-        ChurnRate: 5.2,
-        ActiveUsers: 0, // Not available from Stripe
+        MRR: mrr,
+        NetProfit: totalRevenue * 0.7, // Assuming 70% profit margin
+        BurnRate: 0, // Not available from Stripe
+        CashOnHand: 0, // Not available from Stripe
+        UserSignups: totalCustomers,
+        Runway: 0, // Not available from Stripe
+        CAC: 0, // Not available from Stripe
+        ChurnRate: 0, // Would need historical data
+        ActiveUsers: totalCustomers,
         ConversionRate: 0, // Not available from Stripe
-        LTV: 2500,
+        LTV: 0, // Would need historical data
         DAU: 0, // Not available from Stripe
         WAU: 0, // Not available from Stripe
         WebsiteTraffic: 0, // Not available from Stripe
@@ -60,6 +93,7 @@ export class StripeIntegration extends DataSourceIntegration {
         metricsSynced: Object.keys(data).filter(k => data[k as KPIMetric] > 0).length
       };
     } catch (error) {
+      console.error('Stripe sync error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -70,9 +104,10 @@ export class StripeIntegration extends DataSourceIntegration {
 
   async testConnection(): Promise<boolean> {
     try {
-      // Mock Stripe connection test
+      await this.stripe.accounts.retrieve();
       return true;
-    } catch {
+    } catch (error) {
+      console.error('Stripe connection test failed:', error);
       return false;
     }
   }
