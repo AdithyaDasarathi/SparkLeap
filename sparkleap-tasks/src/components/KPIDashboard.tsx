@@ -30,7 +30,9 @@ import { CartesianGrid } from 'recharts/lib/cartesian/CartesianGrid';
 import { Tooltip } from 'recharts/lib/component/Tooltip';
 import { ResponsiveContainer } from 'recharts/lib/component/ResponsiveContainer';
 import { generateChatResponse } from '../utils/chatHelper';
+import { processTaskInput } from '../utils/taskProcessor';
 import type { Message } from '../types/message';
+import type { Task } from '../types/task';
 
 interface KPIDashboardProps {
   userId: string;
@@ -48,6 +50,9 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Task state for task creation from chat
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     console.log('🔄 KPI Dashboard mounted, fetching KPIs for user:', userId);
@@ -216,15 +221,43 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
     };
 
     setChatMessages(prev => [...prev, userMessage]);
+    const currentInput = chatInput.trim();
     setChatInput('');
     setIsTyping(true);
 
     try {
-      // Create enhanced prompt with KPI context
-      const kpiContext = generateKPIContext();
-      const enhancedPrompt = `${userMessage.content}\n\n${kpiContext}`;
+      // First, try to process as a task
+      console.log('Processing input for task creation:', currentInput);
+      const processedTasks = await processTaskInput(currentInput);
+      console.log('Processed tasks result:', processedTasks);
       
-      const response = await generateChatResponse(enhancedPrompt, []);
+      // If tasks were created, handle them
+      if (processedTasks && processedTasks.length > 0) {
+        // Add tasks to the list
+        processedTasks.forEach(task => {
+          console.log('Creating task:', task);
+          setTasks(prev => [...prev, task]);
+        });
+
+        // Add confirmation message after a short delay
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        const taskCount = processedTasks.length;
+        const confirmationMessage = taskCount === 1 
+          ? `📝 Added task "${processedTasks[0].title}" with ${processedTasks[0].priority.toLowerCase()} priority.`
+          : `📝 Added ${taskCount} tasks to your list.`;
+
+        setIsTyping(false);
+        setChatMessages(prev => [...prev, { role: 'assistant', content: confirmationMessage }]);
+        return;
+      }
+
+      // If not a task, handle as a general message with KPI context
+      console.log('Generating chat response for:', currentInput);
+      const kpiContext = generateKPIContext();
+      const enhancedPrompt = `${currentInput}\n\n${kpiContext}`;
+      
+      const response = await generateChatResponse(enhancedPrompt, tasks);
       setChatMessages(prev => [...prev, {
         role: 'assistant',
         content: response
@@ -241,8 +274,10 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
+    console.log('Key pressed:', e.key);
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      console.log('Enter pressed, sending message');
       handleSendMessage();
     }
   };
@@ -1003,20 +1038,117 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
         {/* Chat Content */}
         <div style={{
           flex: 1,
-          padding: '20px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
           overflow: 'hidden'
         }}>
-          {/* Welcome Message */}
+          {/* Chat Messages Area */}
           <div style={{
-            fontSize: '12px',
-            fontWeight: '400',
-            color: '#9ca3af',
-            lineHeight: '1.4'
+            flex: 1,
+            padding: '20px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
           }}>
-            Welcome back! Feel free to ask me anything about your current metrics. How can I help you today?
+            {chatMessages.map((message, index) => (
+              <div
+                key={index}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px',
+                  justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
+                }}
+              >
+                {message.role === 'assistant' && (
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'rgba(239, 68, 68, 0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginTop: '2px'
+                  }}>
+                    🤖
+                  </div>
+                )}
+                
+                <div style={{
+                  maxWidth: '80%',
+                  padding: '8px 12px',
+                  borderRadius: message.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
+                  background: message.role === 'user' 
+                    ? 'rgba(239, 68, 68, 0.8)'
+                    : 'rgba(42, 42, 42, 0.8)',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)',
+                  fontSize: '11px',
+                  lineHeight: '1.4',
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {message.content.split(/\*\*(.+?)\*\*/).map((part, i) => 
+                    i % 2 === 0 ? part : <strong key={i} style={{ fontWeight: '600' }}>{part}</strong>
+                  )}
+                </div>
+
+                {message.role === 'user' && (
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginTop: '2px'
+                  }}>
+                    👤
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {/* Typing indicator */}
+            {isTyping && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px'
+              }}>
+                <div style={{
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  background: 'rgba(239, 68, 68, 0.8)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  🤖
+                </div>
+                <div style={{
+                  padding: '8px 12px',
+                  borderRadius: '12px 12px 12px 4px',
+                  background: 'rgba(42, 42, 42, 0.8)',
+                  color: '#9ca3af',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  backdropFilter: 'blur(10px)',
+                  fontSize: '11px'
+                }}>
+                  AI is thinking...
+                </div>
+              </div>
+            )}
+            
+            {/* Scroll anchor */}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Suggested Questions */}
@@ -1195,7 +1327,13 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
               }}
             />
             <button 
-              onClick={handleSendMessage}
+              onClick={() => {
+                console.log('Send button clicked');
+                console.log('Button disabled?', isTyping || !chatInput.trim());
+                console.log('isTyping:', isTyping);
+                console.log('chatInput.trim():', chatInput.trim());
+                handleSendMessage();
+              }}
               disabled={isTyping || !chatInput.trim()}
               style={{
                 padding: '8px',
@@ -1217,6 +1355,31 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
               }}
             >
               ✈️
+            </button>
+            {/* Test button for debugging */}
+            <button
+              onClick={() => {
+                console.log('Test button clicked');
+                setChatMessages(prev => [...prev, {
+                  role: 'user',
+                  content: 'Test message'
+                }, {
+                  role: 'assistant', 
+                  content: 'Test response received!'
+                }]);
+              }}
+              style={{
+                padding: '8px',
+                background: 'rgba(16, 185, 129, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: '#ffffff',
+                fontSize: '10px',
+                cursor: 'pointer',
+                marginLeft: '8px'
+              }}
+            >
+              Test
             </button>
           </div>
         </div>

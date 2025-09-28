@@ -31,7 +31,7 @@ export async function callChatApi(messages: Message[]) {
       
       // Log the request configuration (without sensitive data)
       console.log('Making request to OpenAI API with configuration:', {
-        model: 'gpt-4',
+        model: 'gpt-3.5-turbo',
         messageCount: messages.length,
         temperature: 0.7,
         max_tokens: 1000
@@ -44,7 +44,7 @@ export async function callChatApi(messages: Message[]) {
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-3.5-turbo',
           messages: [
             {
               role: 'system',
@@ -68,7 +68,11 @@ export async function callChatApi(messages: Message[]) {
           errorData = { error: errorText };
         }
         
-        console.error('OpenAI API error:', errorData);
+        console.error('OpenAI API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
         
         // If we get a rate limit or server error, retry
         if (response.status === 429 || response.status >= 500) {
@@ -79,7 +83,16 @@ export async function callChatApi(messages: Message[]) {
           continue;
         }
         
-        return 'I encountered an error while processing your request. Please try again.';
+        // Return more specific error messages
+        if (response.status === 401) {
+          return 'Authentication failed. Please check your OpenAI API key is correct and active.';
+        } else if (response.status === 403) {
+          return 'Access denied. Your API key might not have access to the GPT model or might be restricted.';
+        } else if (response.status === 400) {
+          return 'Invalid request. There might be an issue with the message format.';
+        }
+        
+        return `I encountered an error (${response.status}). Please try again or check your API configuration.`;
       }
 
       const data = await response.json();

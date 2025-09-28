@@ -89,9 +89,10 @@ export async function processTaskInput(input: string): Promise<Task[]> {
     /^(set|schedule)\s+.*meeting\s+.*\s+at\s+\d{1,2}/i,
     // Explicit time-based patterns
     /^.*\s+by\s+\d{1,2}(\s*:\s*\d{2})?\s*(am|pm)/i,
-    // I have a meeting pattern
-    /^i\s+have\s+a\s+meeting\s+.*\s+at\s+\d{1,2}/i,
-    /^i\s+have\s+a\s+meeting\s+.*\s+on\s+.*/i,
+    // I have a meeting patterns - improved
+    /^i\s+have\s+(a|an)?\s*(important\s+)?(meeting|appointment|call|interview)\s+.*\s+at\s+\d{1,2}/i,
+    /^i\s+have\s+(a|an)?\s*(important\s+)?(meeting|appointment|call|interview)\s+.*\s+(today|tomorrow|next\s+\w+)/i,
+    /^i\s+have\s+(a|an)?\s*(important\s+)?(meeting|appointment|call|interview)\s+.*\s+on\s+.*/i,
     // Additional patterns for better task detection
     /^remind me to/i,
     /^add (a|an) (new )?appointment/i,
