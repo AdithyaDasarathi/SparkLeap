@@ -165,7 +165,7 @@ export default function Home() {
             justifyContent: 'center',
             gap: '12px'
           }}>
-            <a href="/tasks" style={{
+            <a href="/login" style={{
               display: 'inline-flex',
               height: '44px',
               alignItems: 'center',

@@ -1,1 +1,15 @@
-{}
+{
+  "8cb6447a-e8e6-4367-b0b3-0ba5b6468b7d": {
+    "userId": "demo-user",
+    "source": "Stripe",
+    "isActive": true,
+    "credentials": {
+      "encryptedData": "d78c788ad3df48ac278780a017d84139dd2e73722c9e1322961bcbd8e253daa7aa402e4ef3c3596bc2dfde02fe14a36a0d8d50b0e3db7d181390f28195820b5bd6b02693372d80c76479d81d54e3ab73714ff45acea6dfc05d1071ba2a2d50192682ed29b57166115e98e19009fdbf01",
+      "iv": "44b4c94788044a5c965e9b0956dc2c1c"
+    },
+    "syncFrequency": "daily",
+    "id": "8cb6447a-e8e6-4367-b0b3-0ba5b6468b7d",
+    "createdAt": "2025-09-28T04:39:34.007Z",
+    "updatedAt": "2025-09-28T04:39:34.007Z"
+  }
+}

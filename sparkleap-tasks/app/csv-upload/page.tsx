@@ -1,7 +1,7 @@
 'use client';
 
 import CSVUpload from '@/components/CSVUpload';
-import Navigation from '@/components/Navigation';
+import AppHeader from '@/components/AppHeader';
 
 export default function CSVUploadPage() {
   const handleUploadSuccess = (dataSource: any) => {
@@ -11,7 +11,7 @@ export default function CSVUploadPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation />
+      <AppHeader title="Data Upload" subtitle="CSV Import" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">CSV Data Upload</h1>

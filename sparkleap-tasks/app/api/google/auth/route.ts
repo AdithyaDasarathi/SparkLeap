@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     // Force the redirect URI to the new callback to avoid mismatches
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
     // @ts-ignore - redirectUri is a public property on OAuth2Client
-    oauth2Client.redirectUri = `${baseUrl}/api/google/callback`;
+    oauth2Client.redirectUri = `${baseUrl}/api/auth/google/callback`;
     const url = oauth2Client.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",

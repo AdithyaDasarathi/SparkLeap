@@ -1,14 +1,5 @@
 'use client';
-import { LineChart } from 'recharts/lib/chart/LineChart';
-import { BarChart } from 'recharts/lib/chart/BarChart';
-import { Line } from 'recharts/lib/cartesian/Line';
-import { Bar } from 'recharts/lib/cartesian/Bar';
-import { XAxis } from 'recharts/lib/cartesian/XAxis';
-import { YAxis } from 'recharts/lib/cartesian/YAxis';
-import { CartesianGrid } from 'recharts/lib/cartesian/CartesianGrid';
-import { Tooltip } from 'recharts/lib/component/Tooltip';
-import { Legend } from 'recharts/lib/component/Legend';
-import { ResponsiveContainer } from 'recharts/lib/component/ResponsiveContainer';
+// Removed recharts imports to avoid dependency issues
 import { useEffect, useState } from 'react';
 
 const METRICS = [
@@ -116,16 +107,29 @@ export default function KPICharts() {
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text'
         }}>MRR Trend</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={kpiData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="MRR" stroke="#8884d8" />
-          </LineChart>
-        </ResponsiveContainer>
+        <div style={{
+          width: '100%',
+          height: '300px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          padding: '20px',
+          background: 'linear-gradient(45deg, rgba(136, 132, 216, 0.1), transparent)',
+          borderRadius: '8px'
+        }}>
+          {kpiData.slice(-10).map((point, index) => (
+            <div
+              key={index}
+              style={{
+                flex: 1,
+                height: `${Math.max(20, (point.MRR / Math.max(...kpiData.map(d => d.MRR || 0))) * 260)}px`,
+                background: '#8884d8',
+                marginRight: '4px',
+                borderRadius: '2px',
+                opacity: 0.8
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       {/* CAC + LTV Bar Chart */}
@@ -145,17 +149,39 @@ export default function KPICharts() {
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text'
         }}>CAC vs. LTV</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={kpiData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="CAC" fill="#82ca9d" />
-            <Bar dataKey="LTV" fill="#8884d8" />
-          </BarChart>
-        </ResponsiveContainer>
+        <div style={{
+          width: '100%',
+          height: '300px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          padding: '20px',
+          background: 'linear-gradient(45deg, rgba(130, 202, 157, 0.1), transparent)',
+          borderRadius: '8px',
+          gap: '2px'
+        }}>
+          {kpiData.slice(-10).map((point, index) => (
+            <div key={index} style={{ flex: 1, display: 'flex', gap: '1px', alignItems: 'flex-end' }}>
+              <div
+                style={{
+                  flex: 1,
+                  height: `${Math.max(20, (point.CAC / Math.max(...kpiData.map(d => d.CAC || 0))) * 260)}px`,
+                  background: '#82ca9d',
+                  borderRadius: '2px',
+                  opacity: 0.8
+                }}
+              />
+              <div
+                style={{
+                  flex: 1,
+                  height: `${Math.max(20, (point.LTV / Math.max(...kpiData.map(d => d.LTV || 0))) * 260)}px`,
+                  background: '#8884d8',
+                  borderRadius: '2px',
+                  opacity: 0.8
+                }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* DAU and WAU Line Chart */}
@@ -175,17 +201,38 @@ export default function KPICharts() {
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text'
         }}>Active Users (DAU & WAU)</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={kpiData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="DAU" stroke="#2563eb" />
-            <Line type="monotone" dataKey="WAU" stroke="#f59e42" />
-          </LineChart>
-        </ResponsiveContainer>
+        <div style={{
+          width: '100%',
+          height: '300px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          padding: '20px',
+          background: 'linear-gradient(45deg, rgba(37, 99, 235, 0.1), transparent)',
+          borderRadius: '8px'
+        }}>
+          {kpiData.slice(-10).map((point, index) => (
+            <div key={index} style={{ flex: 1, display: 'flex', gap: '1px', alignItems: 'flex-end' }}>
+              <div
+                style={{
+                  flex: 1,
+                  height: `${Math.max(20, (point.DAU / Math.max(...kpiData.map(d => d.DAU || 0))) * 260)}px`,
+                  background: '#2563eb',
+                  borderRadius: '2px',
+                  opacity: 0.8
+                }}
+              />
+              <div
+                style={{
+                  flex: 1,
+                  height: `${Math.max(20, (point.WAU / Math.max(...kpiData.map(d => d.WAU || 0))) * 260)}px`,
+                  background: '#f59e42',
+                  borderRadius: '2px',
+                  opacity: 0.8
+                }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Website Traffic and Conversion Rate */}
@@ -205,18 +252,38 @@ export default function KPICharts() {
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text'
         }}>Website Traffic & Conversion</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={kpiData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis yAxisId="left" />
-            <YAxis yAxisId="right" orientation="right" />
-            <Tooltip />
-            <Legend />
-            <Line yAxisId="left" type="monotone" dataKey="WebsiteTraffic" stroke="#f97316" />
-            <Line yAxisId="right" type="monotone" dataKey="LeadConversionRate" stroke="#ef4444" />
-          </LineChart>
-        </ResponsiveContainer>
+        <div style={{
+          width: '100%',
+          height: '300px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          padding: '20px',
+          background: 'linear-gradient(45deg, rgba(249, 115, 22, 0.1), transparent)',
+          borderRadius: '8px'
+        }}>
+          {kpiData.slice(-10).map((point, index) => (
+            <div key={index} style={{ flex: 1, display: 'flex', gap: '1px', alignItems: 'flex-end' }}>
+              <div
+                style={{
+                  flex: 1,
+                  height: `${Math.max(20, (point.WebsiteTraffic / Math.max(...kpiData.map(d => d.WebsiteTraffic || 0))) * 260)}px`,
+                  background: '#f97316',
+                  borderRadius: '2px',
+                  opacity: 0.8
+                }}
+              />
+              <div
+                style={{
+                  flex: 1,
+                  height: `${Math.max(20, (point.LeadConversionRate / Math.max(...kpiData.map(d => d.LeadConversionRate || 0))) * 260)}px`,
+                  background: '#ef4444',
+                  borderRadius: '2px',
+                  opacity: 0.8
+                }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Burn Rate Line Chart */}
@@ -236,16 +303,29 @@ export default function KPICharts() {
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text'
         }}>Burn Rate</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={kpiData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="BurnRate" stroke="#f43f5e" />
-          </LineChart>
-        </ResponsiveContainer>
+        <div style={{
+          width: '100%',
+          height: '300px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          padding: '20px',
+          background: 'linear-gradient(45deg, rgba(244, 63, 94, 0.1), transparent)',
+          borderRadius: '8px'
+        }}>
+          {kpiData.slice(-10).map((point, index) => (
+            <div
+              key={index}
+              style={{
+                flex: 1,
+                height: `${Math.max(20, (point.BurnRate / Math.max(...kpiData.map(d => d.BurnRate || 0))) * 260)}px`,
+                background: '#f43f5e',
+                marginRight: '4px',
+                borderRadius: '2px',
+                opacity: 0.8
+              }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

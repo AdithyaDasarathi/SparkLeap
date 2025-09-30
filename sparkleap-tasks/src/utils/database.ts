@@ -1,4 +1,5 @@
 import { KPI, KPIMetric, DataSourceConfig, KPISyncJob, KPIInsight } from '../types/kpi';
+import { Task } from '../types/task';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -9,6 +10,7 @@ const DATA_SOURCES_FILE = path.join(DATA_DIR, 'datasources.json');
 const KPIS_FILE = path.join(DATA_DIR, 'kpis.json');
 const SYNC_JOBS_FILE = path.join(DATA_DIR, 'syncjobs.json');
 const INSIGHTS_FILE = path.join(DATA_DIR, 'insights.json');
+const TASKS_FILE = path.join(DATA_DIR, 'tasks.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -26,6 +28,7 @@ initializeFile(DATA_SOURCES_FILE);
 initializeFile(KPIS_FILE);
 initializeFile(SYNC_JOBS_FILE);
 initializeFile(INSIGHTS_FILE);
+initializeFile(TASKS_FILE);
 
 // File-based storage functions
 const readData = (filePath: string) => {
@@ -453,6 +456,92 @@ export class DatabaseService {
           status: 'active'
         });
       }
+    }
+  }
+
+  // Utility method to generate IDs
+  static generateId(): string {
+    return crypto.randomUUID();
+  }
+
+  // Task Management Methods
+  static async getTasksByUser(userId: string): Promise<Task[]> {
+    try {
+      const tasks = readData(TASKS_FILE);
+      return Object.values(tasks).filter((task: any) => task.userId === userId) as Task[];
+    } catch (error) {
+      console.error('Error getting tasks:', error);
+      return [];
+    }
+  }
+
+  static async createTask(task: Omit<Task, 'id'> & { userId: string }): Promise<Task> {
+    try {
+      const tasks = readData(TASKS_FILE);
+      const newTask: Task = {
+        ...task,
+        id: this.generateId()
+      };
+      
+      tasks[newTask.id] = newTask;
+      writeData(TASKS_FILE, tasks);
+      console.log('✅ Task created:', newTask.id);
+      return newTask;
+    } catch (error) {
+      console.error('Error creating task:', error);
+      throw error;
+    }
+  }
+
+  static async updateTask(id: string, updates: Partial<Task>): Promise<Task> {
+    try {
+      const tasks = readData(TASKS_FILE);
+      const task = tasks[id];
+      
+      if (!task) {
+        throw new Error(`Task ${id} not found`);
+      }
+      
+      const updatedTask = { ...task, ...updates };
+      tasks[id] = updatedTask;
+      writeData(TASKS_FILE, tasks);
+      console.log('✅ Task updated:', id);
+      return updatedTask;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      throw error;
+    }
+  }
+
+  static async deleteTask(id: string): Promise<void> {
+    try {
+      const tasks = readData(TASKS_FILE);
+      delete tasks[id];
+      writeData(TASKS_FILE, tasks);
+      console.log('✅ Task deleted:', id);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+    }
+  }
+
+  static async clearUserTasks(userId: string): Promise<void> {
+    try {
+      const tasks = readData(TASKS_FILE);
+      const filteredTasks: Record<string, Task> = {};
+      
+      // Keep tasks that don't belong to this user
+      Object.entries(tasks).forEach(([id, task]: [string, any]) => {
+        if (task.userId !== userId) {
+          filteredTasks[id] = task;
+        }
+      });
+      
+      writeData(TASKS_FILE, filteredTasks);
+      console.log('✅ Cleared tasks for user:', userId);
+    } catch (error) {
+      console.error('Error clearing user tasks:', error);
+      throw error;
     }
   }
 } 

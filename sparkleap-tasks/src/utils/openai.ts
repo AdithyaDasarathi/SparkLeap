@@ -1,4 +1,5 @@
 // src/utils/openai.ts
+import { rateLimiter } from './rateLimiter';
 
 type Message = {
   role: 'system' | 'user' | 'assistant';
@@ -11,7 +12,45 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Maximum number of retries
 const MAX_RETRIES = 3;
 
+// Generate user identifier (uses authenticated user if available)
+function getUserIdentifier(): string {
+  if (typeof window !== 'undefined') {
+    // Try to get authenticated user first
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return user.email || user.id || 'authenticated-user';
+      }
+    } catch (e) {
+      console.log('No authenticated user found');
+    }
+    
+    // Fallback to session-based identifier
+    let identifier = localStorage.getItem('user-session-id');
+    if (!identifier) {
+      identifier = 'guest-' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('user-session-id', identifier);
+    }
+    return identifier;
+  }
+  // Server-side: use a default identifier
+  return 'server-user';
+}
+
 export async function callChatApi(messages: Message[]) {
+  // Check rate limits first
+  const userIdentifier = getUserIdentifier();
+  const rateLimitCheck = rateLimiter.checkLimit(userIdentifier);
+  
+  if (!rateLimitCheck.allowed) {
+    const resetTime = new Date(rateLimitCheck.resetTime).toLocaleString();
+    console.log(`🚫 Rate limit exceeded for user ${userIdentifier}. Reset at: ${resetTime}`);
+    return `• 🚫 **Rate limit exceeded**: You've reached your usage limit.\n• ⏰ **Try again**: ${resetTime}\n• 💡 **Tip**: Each user gets 50 requests per day and 10 per hour to prevent abuse.`;
+  }
+  
+  console.log(`✅ Rate limit check passed. Remaining requests: ${rateLimitCheck.remaining}`);
+  
   let retries = 0;
   
   while (retries < MAX_RETRIES) {

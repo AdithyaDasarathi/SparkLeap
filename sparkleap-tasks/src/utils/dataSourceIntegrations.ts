@@ -29,7 +29,7 @@ export class StripeIntegration extends DataSourceIntegration {
   constructor(credentials: string, userId: string) {
     super(credentials, userId);
     this.stripe = new Stripe(credentials, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-08-27.basil',
     });
   }
 

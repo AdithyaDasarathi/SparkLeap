@@ -1,1 +1,145 @@
-{}
+{
+  "dcddbb0e-766c-437b-9782-96bdbaa00435": {
+    "userId": "guest-user",
+    "metricName": "MRR",
+    "source": "GoogleSheets",
+    "value": 10000,
+    "timestamp": "2025-09-30T06:49:32.302Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.302Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "dcddbb0e-766c-437b-9782-96bdbaa00435"
+  },
+  "35e475c7-5112-4661-8fb8-890e20bd77f0": {
+    "userId": "guest-user",
+    "metricName": "UserSignups",
+    "source": "GoogleSheets",
+    "value": 500,
+    "timestamp": "2025-09-30T06:49:32.345Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.345Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "35e475c7-5112-4661-8fb8-890e20bd77f0"
+  },
+  "a6889900-d9af-44d3-870e-b544d4344317": {
+    "userId": "guest-user",
+    "metricName": "ChurnRate",
+    "source": "GoogleSheets",
+    "value": 5,
+    "timestamp": "2025-09-30T06:49:32.414Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.414Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "a6889900-d9af-44d3-870e-b544d4344317"
+  },
+  "ac8846eb-ebc9-4c38-b66c-f454260feeab": {
+    "userId": "guest-user",
+    "metricName": "BurnRate",
+    "source": "GoogleSheets",
+    "value": 8000,
+    "timestamp": "2025-09-30T06:49:32.426Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.426Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "ac8846eb-ebc9-4c38-b66c-f454260feeab"
+  },
+  "846fd111-988c-45d7-b33f-ef0a6486ec57": {
+    "userId": "guest-user",
+    "metricName": "MRR",
+    "source": "GoogleSheets",
+    "value": 10500,
+    "timestamp": "2025-09-30T06:49:32.444Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.444Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "846fd111-988c-45d7-b33f-ef0a6486ec57"
+  },
+  "a34e3da7-8ea5-4c49-a1dd-9d7fa39fa856": {
+    "userId": "guest-user",
+    "metricName": "UserSignups",
+    "source": "GoogleSheets",
+    "value": 520,
+    "timestamp": "2025-09-30T06:49:32.455Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.455Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "a34e3da7-8ea5-4c49-a1dd-9d7fa39fa856"
+  },
+  "eddc8096-d886-42c8-b05d-e7abbece2c02": {
+    "userId": "guest-user",
+    "metricName": "ChurnRate",
+    "source": "GoogleSheets",
+    "value": 4.8,
+    "timestamp": "2025-09-30T06:49:32.516Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.516Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "eddc8096-d886-42c8-b05d-e7abbece2c02"
+  },
+  "ab61edc7-58b9-4f10-bd4f-dd5e2bd94fba": {
+    "userId": "guest-user",
+    "metricName": "BurnRate",
+    "source": "GoogleSheets",
+    "value": 8200,
+    "timestamp": "2025-09-30T06:49:32.594Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.594Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "ab61edc7-58b9-4f10-bd4f-dd5e2bd94fba"
+  },
+  "b05010c5-2f53-4cbe-9307-0e0c5436a550": {
+    "userId": "guest-user",
+    "metricName": "MRR",
+    "source": "GoogleSheets",
+    "value": 11000,
+    "timestamp": "2025-09-30T06:49:32.687Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.687Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "b05010c5-2f53-4cbe-9307-0e0c5436a550"
+  },
+  "4e62ff3b-a037-45d4-9e16-746e9a869d63": {
+    "userId": "guest-user",
+    "metricName": "UserSignups",
+    "source": "GoogleSheets",
+    "value": 550,
+    "timestamp": "2025-09-30T06:49:32.695Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.695Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "4e62ff3b-a037-45d4-9e16-746e9a869d63"
+  },
+  "3287fa68-32c7-4fa2-a165-afa754a69e85": {
+    "userId": "guest-user",
+    "metricName": "ChurnRate",
+    "source": "GoogleSheets",
+    "value": 4.5,
+    "timestamp": "2025-09-30T06:49:32.714Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.714Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "3287fa68-32c7-4fa2-a165-afa754a69e85"
+  },
+  "8ff3cf11-4276-4c9c-9e8f-6fc94009d78a": {
+    "userId": "guest-user",
+    "metricName": "BurnRate",
+    "source": "GoogleSheets",
+    "value": 8300,
+    "timestamp": "2025-09-30T06:49:32.722Z",
+    "lastSyncedAt": "2025-09-30T06:49:32.722Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "8ff3cf11-4276-4c9c-9e8f-6fc94009d78a"
+  },
+  "4ce2754a-d0b5-4ffb-b413-55df4555ba53": {
+    "userId": "guest-user",
+    "metricName": "UserSignups",
+    "source": "GoogleSheets",
+    "value": 500,
+    "timestamp": "2025-09-30T06:58:47.902Z",
+    "lastSyncedAt": "2025-09-30T06:58:47.902Z",
+    "isManualOverride": false,
+    "status": "active",
+    "id": "4ce2754a-d0b5-4ffb-b413-55df4555ba53"
+  }
+}

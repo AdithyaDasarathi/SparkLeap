@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ResponsiveContainer } from 'recharts/lib/component/ResponsiveContainer';
-import { LineChart } from 'recharts/lib/chart/LineChart';
-import { Line } from 'recharts/lib/cartesian/Line';
-import { BarChart } from 'recharts/lib/chart/BarChart';
-import { Bar } from 'recharts/lib/cartesian/Bar';
-import { XAxis } from 'recharts/lib/cartesian/XAxis';
-import { YAxis } from 'recharts/lib/cartesian/YAxis';
-import { Tooltip } from 'recharts/lib/component/Tooltip';
-import { CartesianGrid } from 'recharts/lib/cartesian/CartesianGrid';
+// Removed recharts imports to avoid dependency issues
 
 export default function KPIDashboardPreview() {
   const [data, setData] = useState<any[]>([]);
@@ -92,16 +84,26 @@ export default function KPIDashboardPreview() {
               <div style={{ fontSize: 28, fontWeight: 700 }}>${current?.toLocaleString() ?? '—'}</div>
             </div>
             {/* Right: mini bar chart */}
-            <div style={{ background: 'transparent' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 10 }} />
-                  <YAxis tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 10 }} width={40} />
-                  <Tooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} />
-                  <Bar dataKey="value" fill="#FF8669" radius={[3,3,0,0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div style={{ 
+              background: 'transparent',
+              display: 'flex',
+              alignItems: 'flex-end',
+              padding: '4px',
+              gap: '1px'
+            }}>
+              {data.slice(-10).map((point, index) => (
+                <div
+                  key={index}
+                  style={{
+                    flex: 1,
+                    height: `${Math.max(10, (point.value / Math.max(...data.map(d => d.value))) * 80)}%`,
+                    background: '#FF8669',
+                    borderRadius: '3px 3px 0 0',
+                    opacity: 0.8,
+                    minHeight: '4px'
+                  }}
+                />
+              ))}
             </div>
           </>
         )}

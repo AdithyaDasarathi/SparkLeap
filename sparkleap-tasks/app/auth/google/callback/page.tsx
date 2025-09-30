@@ -12,26 +12,51 @@ export default function GoogleOAuthCallback() {
       try {
         const code = searchParams.get('code');
         const error = searchParams.get('error');
+        const state = searchParams.get('state');
         
         if (code) {
-          // Send the authorization code to the parent window
-          if (window.opener) {
-            window.opener.postMessage({ type: 'GOOGLE_OAUTH_SUCCESS', code }, window.location.origin);
+          // Exchange code for user info and create session
+          const response = await fetch('/api/auth/google/exchange', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            // Store user info in localStorage for demo (in production, use secure sessions)
+            localStorage.setItem('user', JSON.stringify(result.user));
+            
+            // Check if this was for Google Sheets integration (from state parameter)
+            const isSheets = state && state.startsWith('sheets_');
+            
+            // Send success to parent window or redirect
+            if (window.opener) {
+              window.opener.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS', user: result.user }, window.location.origin);
+            } else {
+              if (isSheets) {
+                // Redirect to KPI dashboard with success message for sheets
+                window.location.href = '/kpi?auth=success&source=sheets';
+              } else {
+                // Regular login - redirect to login success page
+                window.location.href = '/login?success=true';
+              }
+            }
           } else {
-            // If no opener, redirect back to calendar with success
-            window.location.href = '/calendar?auth=success';
+            throw new Error(result.error || 'Authentication failed');
           }
         } else if (error) {
           // Send the error to the parent window
           if (window.opener) {
-            window.opener.postMessage({ type: 'GOOGLE_OAUTH_ERROR', error }, window.location.origin);
+            window.opener.postMessage({ type: 'GOOGLE_LOGIN_ERROR', error }, window.location.origin);
           } else {
-            // If no opener, redirect back to calendar with error
-            window.location.href = `/calendar?auth=error&message=${encodeURIComponent(error)}`;
+            // If no opener, redirect back to login with error
+            window.location.href = `/login?error=${encodeURIComponent(error)}`;
           }
         } else {
-          // No code or error, redirect to calendar
-          window.location.href = '/calendar';
+          // No code or error, redirect to login
+          window.location.href = '/login';
         }
         
         // Close the popup window after a short delay

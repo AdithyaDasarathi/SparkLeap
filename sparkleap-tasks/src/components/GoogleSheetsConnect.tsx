@@ -30,26 +30,211 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
   const [range, setRange] = useState('A:Z');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [csvData, setCsvData] = useState<any[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [spreadsheetInfo, setSpreadsheetInfo] = useState<SpreadsheetInfo | null>(null);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [authInProgress, setAuthInProgress] = useState(false);
 
+  // Get current user ID from localStorage
+  const getUserId = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return user.id || user.email || 'demo-user';
+      }
+      return 'demo-user';
+    } catch {
+      return 'demo-user';
+    }
+  };
+
+  // Extract spreadsheet ID from Google Sheets URL
+  const extractSpreadsheetId = (url: string) => {
+    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : url; // Return ID if found, otherwise assume it's already an ID
+  };
+
+  // Convert Google Sheets URL to CSV export URL
+  const getCSVExportUrl = (url: string) => {
+    const spreadsheetId = extractSpreadsheetId(url);
+    return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=0`;
+  };
+
+  // Parse CSV data and create KPI metrics
+  const parseCSVAndCreateKPIs = async (csvText: string) => {
+    try {
+      const lines = csvText.split('\n').filter(line => line.trim());
+      if (lines.length < 2) {
+        throw new Error('CSV must have at least a header row and one data row');
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().replace(/['"]/g, ''));
+      const dataRows = lines.slice(1).map(line => 
+        line.split(',').map(cell => cell.trim().replace(/['"]/g, ''))
+      );
+
+      // Look for common KPI column patterns
+      const kpiMetrics: any[] = [];
+      const currentDate = new Date();
+
+      for (const row of dataRows) {
+        for (let i = 0; i < headers.length; i++) {
+          const header = headers[i].toLowerCase();
+          const value = parseFloat(row[i]);
+          
+          if (isNaN(value)) continue; // Skip non-numeric values
+
+          let metricName = null;
+          
+          // Map common column names to KPI metrics
+          if (header.includes('mrr') || header.includes('monthly recurring revenue')) {
+            metricName = 'MRR';
+          } else if (header.includes('revenue') || header.includes('net profit')) {
+            metricName = 'NetProfit';
+          } else if (header.includes('burn') || header.includes('burn rate')) {
+            metricName = 'BurnRate';
+          } else if (header.includes('cash') || header.includes('cash on hand')) {
+            metricName = 'CashOnHand';
+          } else if (header.includes('user') || header.includes('signup') || header.includes('acquisition')) {
+            metricName = 'UserSignups';
+          } else if (header.includes('runway')) {
+            metricName = 'Runway';
+          } else if (header.includes('cac') || header.includes('customer acquisition cost')) {
+            metricName = 'CAC';
+          } else if (header.includes('churn')) {
+            metricName = 'ChurnRate';
+          } else if (header.includes('conversion')) {
+            metricName = 'ConversionRate';
+          } else if (header.includes('active users') || header.includes('dau')) {
+            metricName = 'ActiveUsers';
+          }
+
+          if (metricName) {
+            kpiMetrics.push({
+              userId: getUserId(), // Use current user ID
+              metricName,
+              source: 'GoogleSheets',
+              value,
+              timestamp: currentDate,
+              lastSyncedAt: currentDate,
+              isManualOverride: false,
+              status: 'active'
+            });
+          }
+        }
+      }
+
+      return kpiMetrics;
+    } catch (error) {
+      console.error('Error parsing CSV:', error);
+      throw error;
+    }
+  };
+
+  // Import data from Google Sheets URL
+  const handleImportFromURL = async () => {
+    if (!spreadsheetId.trim()) {
+      setMessage('❌ Please enter a Google Sheets URL or ID');
+      return;
+    }
+
+    setLoading(true);
+    setMessage('📊 Importing data from Google Sheets...');
+
+    try {
+      const csvUrl = getCSVExportUrl(spreadsheetId);
+      
+      // Use a CORS proxy or try direct fetch
+      let csvText = '';
+      try {
+        const response = await fetch(csvUrl);
+        if (!response.ok) {
+          throw new Error('Direct access failed');
+        }
+        csvText = await response.text();
+      } catch (directError) {
+        // If direct access fails, use a CORS proxy
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(csvUrl)}`;
+        const proxyResponse = await fetch(proxyUrl);
+        const proxyData = await proxyResponse.json();
+        csvText = proxyData.contents;
+      }
+
+      if (!csvText) {
+        throw new Error('Failed to fetch CSV data');
+      }
+
+      setCsvData(csvText.split('\n').slice(0, 5)); // Preview first 5 rows
+      
+      // Parse CSV and create KPIs
+      const kpiMetrics = await parseCSVAndCreateKPIs(csvText);
+      
+      if (kpiMetrics.length === 0) {
+        setMessage('⚠️ No recognizable KPI metrics found. Please check your column headers include terms like: MRR, Revenue, Burn Rate, Cash, Users, Runway, CAC, Churn, etc.');
+        return;
+      }
+
+      // Send KPIs to backend
+      console.log('💾 Creating KPIs for user:', getUserId(), 'metrics:', kpiMetrics.length);
+      const createPromises = kpiMetrics.map(async (kpi) => {
+        console.log('💾 Creating KPI:', kpi.metricName, 'for user:', kpi.userId);
+        const response = await fetch('/api/kpi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(kpi)
+        });
+        const result = await response.json();
+        console.log('💾 KPI creation result:', result);
+        return result;
+      });
+
+      await Promise.all(createPromises);
+      
+      setMessage(`✅ Successfully imported ${kpiMetrics.length} KPI metrics from Google Sheets!`);
+      setIsConnected(true);
+      
+      // Notify parent component
+      if (onDataGenerated) {
+        onDataGenerated();
+      }
+
+    } catch (error) {
+      console.error('Import error:', error);
+      setMessage(`❌ Import failed: ${error instanceof Error ? error.message : 'Unknown error'}. Make sure the sheet is publicly accessible.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Check if Google Sheets is already connected and handle OAuth callback
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const res = await fetch('/api/datasources?userId=demo-user');
+        const currentUserId = getUserId();
+        console.log('🔍 Checking GoogleSheets connection for user:', currentUserId);
+        
+        const res = await fetch(`/api/datasources?userId=${currentUserId}`);
         if (res.ok) {
           const data = await res.json();
+          console.log('📋 Data sources response:', data);
           const googleSheetsSource = data.dataSources?.find((ds: any) => ds.source === 'GoogleSheets');
           if (googleSheetsSource) {
+            console.log('📊 Found GoogleSheets data source:', googleSheetsSource.id);
             setIsConnected(true);
             setSourceId(googleSheetsSource.id);
+            setMessage('✅ Connected to Google Sheets');
             // Try to get spreadsheet info if available
             fetchSpreadsheetInfo(googleSheetsSource.id);
+          } else {
+            console.log('❌ No GoogleSheets data source found for user:', currentUserId);
+            setIsConnected(false);
+            setSourceId(null);
           }
+        } else {
+          console.error('❌ Failed to fetch data sources:', res.status);
         }
       } catch (error) {
         console.error('Error checking connection:', error);
@@ -63,15 +248,27 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     const source = urlParams.get('source');
     const error = urlParams.get('error');
 
-    if (auth === 'success' && credentials && source === 'sheets') {
+    if (auth === 'success' && source === 'sheets') {
+      // For the new auth flow, we get user info from localStorage instead of URL
       try {
-        const creds = JSON.parse(decodeURIComponent(credentials));
-        // Create data source directly with the credentials
-        createDataSource(creds);
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          // Create a simplified credential object for sheets integration
+          const creds = {
+            accessToken: user.accessToken,
+            refreshToken: user.refreshToken,
+            expiryDate: Date.now() + 3600000, // 1 hour from now
+          };
+          // Create data source with the credentials
+          createDataSource(creds);
+        } else {
+          setMessage('❌ No user authentication found. Please try again.');
+        }
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
       } catch (error) {
-        setMessage(`Failed to parse credentials: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setMessage(`Failed to process authentication: ${error instanceof Error ? error.message : 'Unknown error'}`);
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     } else if (auth === 'error' || error) {
@@ -80,6 +277,14 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     } else {
       checkConnection();
     }
+    
+    // Also check again after a delay in case localStorage isn't ready immediately
+    const timeoutId = setTimeout(() => {
+      console.log('🔄 Rechecking connection after delay...');
+      checkConnection();
+    }, 1000);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const fetchSpreadsheetInfo = async (id: string) => {
@@ -92,8 +297,8 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     setMessage('');
 
     try {
-      // Use the same OAuth endpoint as Calendar but with state parameter
-      window.location.href = '/api/google/auth?state=sheets';
+      // Use the main auth flow with sheets intent parameter
+      window.location.href = '/api/auth/google/login?intent=sheets';
     } catch (error) {
       setAuthInProgress(false);
       setMessage(`Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -153,7 +358,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'demo-user',
+          userId: getUserId(),
           source: 'GoogleSheets',
           credentials,
           syncFrequency: 'daily'
@@ -182,12 +387,18 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
   };
 
   const handleSync = async () => {
-    if (!sourceId) return;
+    if (!sourceId) {
+      setMessage('❌ No data source connected. Please connect Google Sheets first.');
+      return;
+    }
 
     setLoading(true);
     setMessage('');
 
     try {
+      const currentUserId = getUserId();
+      console.log('🔄 Starting sync with userId:', currentUserId, 'sourceId:', sourceId);
+      
       // Add a longer delay to ensure data source is fully saved and available
       setMessage('⏳ Preparing sync...');
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -198,20 +409,27 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sourceId,
-          userId: 'demo-user'
+          userId: currentUserId
         })
       });
 
       const data = await res.json();
+      console.log('📊 Sync response:', data);
       
-      if (data.success) {
+      if (res.ok && data.success) {
         setMessage(`✅ Sync completed! ${data.metricsSynced} metrics processed. Check console for details.`);
+        
+        // Notify parent component to refresh dashboard
+        if (onDataGenerated) {
+          onDataGenerated();
+        }
       } else {
-        setMessage(`❌ Sync failed: ${data.error || 'Unknown error'}`);
+        console.error('Sync failed:', data);
+        setMessage(`❌ Sync failed: ${data.error || 'Unknown error'}. Check console for details.`);
       }
     } catch (error) {
       console.error('Sync error:', error);
-      setMessage('❌ Sync failed. Please try again.');
+      setMessage(`❌ Sync failed: ${error instanceof Error ? error.message : 'Network error'}. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -224,7 +442,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
       const res = await fetch(`/api/datasources/${sourceId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'demo-user' })
+        body: JSON.stringify({ userId: getUserId() })
       });
 
       if (res.ok) {
@@ -246,7 +464,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     setMessage('');
 
     try {
-      const res = await fetch('/api/kpi/verify-sync?userId=demo-user&source=GoogleSheets&hours=24');
+      const res = await fetch(`/api/kpi/verify-sync?userId=${getUserId()}&source=GoogleSheets&hours=24`);
       const data = await res.json();
       
       if (data.success) {
@@ -284,10 +502,10 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          userId: 'demo-user', 
-          days: 30, 
-          source: 'GoogleSheets' 
+        body: JSON.stringify({
+          userId: getUserId(),
+          days: 30,
+          source: 'GoogleSheets'
         })
       });
       
@@ -315,10 +533,6 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
 
 
 
-  const extractSpreadsheetId = (url: string) => {
-    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : url;
-  };
 
   const handleSpreadsheetUrlChange = (value: string) => {
     const extractedId = extractSpreadsheetId(value);
@@ -480,6 +694,94 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
           >
             {authInProgress ? 'Authorizing...' : loading ? 'Connecting...' : 'Connect Google Sheets'}
           </button>
+
+          {/* OR Divider */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            margin: '16px 0',
+            gap: '12px'
+          }}>
+            <div style={{
+              flex: 1,
+              height: '1px',
+              background: 'rgba(255, 255, 255, 0.1)'
+            }} />
+            <span style={{
+              fontSize: '12px',
+              color: '#6b7280',
+              fontWeight: '500'
+            }}>or</span>
+            <div style={{
+              flex: 1,
+              height: '1px',
+              background: 'rgba(255, 255, 255, 0.1)'
+            }} />
+          </div>
+
+          {/* Quick Import Button */}
+          <button
+            onClick={handleImportFromURL}
+            disabled={loading || authInProgress || !spreadsheetId.trim()}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              color: '#ffffff',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: (loading || authInProgress || !spreadsheetId.trim()) ? 'not-allowed' : 'pointer',
+              opacity: (loading || authInProgress || !spreadsheetId.trim()) ? 0.6 : 1,
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+              marginBottom: '16px'
+            }}
+            onMouseEnter={(e) => {
+              if (!loading && !authInProgress && spreadsheetId.trim()) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(16, 185, 129, 0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loading && !authInProgress) {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+              }
+            }}
+          >
+            📊 Quick Import as CSV
+          </button>
+
+          {/* CSV Preview */}
+          {csvData.length > 0 && (
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '16px'
+            }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#10b981',
+                marginBottom: '8px'
+              }}>CSV Data Preview:</div>
+              <div style={{
+                fontSize: '11px',
+                color: '#9ca3af',
+                fontFamily: 'monospace',
+                maxHeight: '100px',
+                overflow: 'auto'
+              }}>
+                {csvData.slice(0, 3).map((row, index) => (
+                  <div key={index}>{typeof row === 'string' ? row : JSON.stringify(row)}</div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{
             background: 'rgba(245, 158, 11, 0.1)',

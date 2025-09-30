@@ -9,41 +9,29 @@ import {
   CUSTOMIZABLE_KPI_METRICS,
   KPITrend 
 } from '../types/kpi';
-import { 
-  ArrowUpIcon, 
-  ArrowDownIcon, 
-  MinusIcon,
-  PlusIcon,
-  XMarkIcon,
-  BellIcon,
-  Cog6ToothIcon,
-  SunIcon,
-  MoonIcon
-} from '@heroicons/react/24/solid';
-import { LineChart } from 'recharts/lib/chart/LineChart';
-import { BarChart } from 'recharts/lib/chart/BarChart';
-import { Line } from 'recharts/lib/cartesian/Line';
-import { Bar } from 'recharts/lib/cartesian/Bar';
-import { XAxis } from 'recharts/lib/cartesian/XAxis';
-import { YAxis } from 'recharts/lib/cartesian/YAxis';
-import { CartesianGrid } from 'recharts/lib/cartesian/CartesianGrid';
-import { Tooltip } from 'recharts/lib/component/Tooltip';
-import { ResponsiveContainer } from 'recharts/lib/component/ResponsiveContainer';
+// Note: We're not actually using these icons in the current implementation
+// Removing unused imports to prevent potential conflicts
+// Using simplified chart implementation instead of recharts to avoid dependency issues
 import { generateChatResponse } from '../utils/chatHelper';
 import { processTaskInput } from '../utils/taskProcessor';
 import type { Message } from '../types/message';
 import type { Task } from '../types/task';
+import { useRouter } from 'next/navigation';
 
 interface KPIDashboardProps {
   userId: string;
 }
 
 export default function KPIDashboard({ userId }: KPIDashboardProps) {
+  const router = useRouter();
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [trends, setTrends] = useState<Record<KPIMetric, KPITrend>>({} as Record<KPIMetric, KPITrend>);
   const [loading, setLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  // User state
+  const [user, setUser] = useState<any>(null);
   
   // AI Chat state
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
@@ -54,16 +42,87 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
   // Task state for task creation from chat
   const [tasks, setTasks] = useState<Task[]>([]);
 
+  // Load user tasks
+  const loadUserTasks = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/tasks?userId=${userId}`);
+      const data = await response.json();
+      if (data.success) {
+        setTasks(data.tasks);
+        console.log('📋 Loaded tasks for user:', userId, '- Count:', data.tasks.length);
+      }
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    }
+  };
+
+  // Save task to database
+  const saveTask = async (task: Task, userId: string) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task, userId })
+      });
+      const data = await response.json();
+      if (data.success) {
+        console.log('💾 Task saved to database:', data.task.id);
+        return data.task;
+      }
+    } catch (error) {
+      console.error('Error saving task:', error);
+    }
+    return null;
+  };
+
   useEffect(() => {
-    console.log('🔄 KPI Dashboard mounted, fetching KPIs for user:', userId);
-    fetchKPIs();
-    
-    // Initialize chat with welcome message
-    setChatMessages([{
-      role: 'assistant',
-      content: 'Welcome back! Feel free to ask me anything about your current metrics. How can I help?'
-    }]);
-  }, [userId]);
+    // Load user from localStorage
+    const loadUser = () => {
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const userData = JSON.parse(userStr);
+          setUser(userData);
+          console.log('👤 Loaded user:', userData.email);
+          
+          // Fetch KPIs for the specific user
+          fetchKPIs(userData.id || userData.email);
+          
+          // Load user-specific tasks
+          loadUserTasks(userData.id || userData.email);
+          
+          // Initialize chat with personalized welcome message
+          setChatMessages([{
+            role: 'assistant',
+            content: `Welcome back, ${userData.name}! Feel free to ask me anything about your current metrics. How can I help?`
+          }]);
+        } else {
+          // No user found, create demo user for development
+          console.log('⚠️ No user found in KPIDashboard, creating demo user');
+          const demoUser = {
+            id: 'demo-user',
+            email: 'demo@sparkleap.com',
+            name: 'Demo User',
+            picture: null
+          };
+          setUser(demoUser);
+          fetchKPIs(demoUser.id);
+          loadUserTasks(demoUser.id);
+          
+          // Initialize chat with welcome message
+          setChatMessages([{
+            role: 'assistant',
+            content: 'Welcome back! Feel free to ask me anything about your current metrics. How can I help?'
+          }]);
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+        router.push('/login');
+      }
+    };
+
+    loadUser();
+  }, [router]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -72,11 +131,12 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
     }
   }, [chatMessages]);
 
-  const fetchKPIs = async () => {
+  const fetchKPIs = async (userIdentifier?: string) => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching KPIs for user:', userId);
-      const response = await fetch(`/api/kpi?userId=${userId}`);
+      const actualUserId = userIdentifier || userId;
+      console.log('🔄 Fetching KPIs for user:', actualUserId);
+      const response = await fetch(`/api/kpi?userId=${actualUserId}`);
       const data = await response.json();
       
       if (data.kpis) {
@@ -211,6 +271,21 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
     return context;
   };
 
+  // Logout functionality
+  const handleLogout = () => {
+    // Clear local state
+    setUser(null);
+    setTasks([]);
+    setChatMessages([]);
+    
+    // Clear localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('user-session-id');
+    
+    // Redirect to login
+    router.push('/login');
+  };
+
   // Chat functionality
   const handleSendMessage = async () => {
     if (!chatInput.trim() || isTyping) return;
@@ -232,19 +307,29 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
       console.log('Processed tasks result:', processedTasks);
       
       // If tasks were created, handle them
-      if (processedTasks && processedTasks.length > 0) {
-        // Add tasks to the list
-        processedTasks.forEach(task => {
+      if (processedTasks && processedTasks.length > 0 && user) {
+        const savedTasks: Task[] = [];
+        
+        // Save each task to database
+        for (const task of processedTasks) {
           console.log('Creating task:', task);
-          setTasks(prev => [...prev, task]);
-        });
+          const savedTask = await saveTask(task, user.id || user.email);
+          if (savedTask) {
+            savedTasks.push(savedTask);
+          }
+        }
+
+        // Update local state with saved tasks
+        if (savedTasks.length > 0) {
+          setTasks(prev => [...prev, ...savedTasks]);
+        }
 
         // Add confirmation message after a short delay
         await new Promise(resolve => setTimeout(resolve, 800));
         
-        const taskCount = processedTasks.length;
+        const taskCount = savedTasks.length;
         const confirmationMessage = taskCount === 1 
-          ? `📝 Added task "${processedTasks[0].title}" with ${processedTasks[0].priority.toLowerCase()} priority.`
+          ? `📝 Added task "${savedTasks[0].title}" with ${savedTasks[0].priority.toLowerCase()} priority.`
           : `📝 Added ${taskCount} tasks to your list.`;
 
         setIsTyping(false);
@@ -386,43 +471,32 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
         break;
     }
 
-    if (metricName === 'MRR' || metricName === 'BurnRate' || metricName === 'CashOnHand') {
-      // Line chart with gradient
-      return (
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <defs>
-              <linearGradient id={`gradient-${metricName}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={gradientColor} stopOpacity={0.3} />
-                <stop offset="100%" stopColor={gradientColor} stopOpacity={0.05} />
-              </linearGradient>
-            </defs>
-            <Line 
-              type="monotone" 
-              dataKey="value" 
-              stroke={color}
-              strokeWidth={2}
-              dot={false}
-              isAnimationActive={false}
-              fill={`url(#gradient-${metricName})`}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      );
-    } else {
-      // Bar chart with specific styling
-      return (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data}>
-            <Bar 
-              dataKey="value" 
-              fill={gradientColor}
-              radius={[2, 2, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      );
-    }
+    // Simplified chart rendering to avoid recharts issues
+    return (
+      <div style={{
+        width: '100%',
+        height: '100%',
+        background: `linear-gradient(45deg, ${gradientColor}20, transparent)`,
+        borderRadius: '4px',
+        display: 'flex',
+        alignItems: 'flex-end',
+        padding: '4px'
+      }}>
+        {data.slice(-10).map((point, index) => (
+          <div
+            key={index}
+            style={{
+              flex: 1,
+              height: `${Math.max(10, (point.value / Math.max(...data.map(d => d.value))) * 100)}%`,
+              background: gradientColor,
+              marginRight: '1px',
+              borderRadius: '1px',
+              opacity: 0.8
+            }}
+          />
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -700,9 +774,11 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
           {/* Other Navigation Items */}
           <div style={{ marginTop: '16px' }}>
             {[
+              { name: 'Tasks', icon: '✅', href: '/tasks' },
+              { name: 'Calendar', icon: '📅', href: '/calendar' },
+              { name: 'CSV Upload', icon: '📊', href: '/csv-upload' },
               { name: 'Personal', icon: '👤', href: '/personal' },
               { name: 'Strategy', icon: '🎯', href: '/strategy' },
-              { name: 'Calendar', icon: '📅', href: '/calendar' },
               { name: 'Account', icon: '⚙️', href: '/account' },
               { name: 'Settings', icon: '🔧', href: '/settings' }
             ].map((item) => (
@@ -759,74 +835,8 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Header */}
-        <div style={{
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: '#1a1a1a',
-          borderBottom: '1px solid #2a2a2a'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/sparkleap.png" alt="SparkLeap" width={20} height={20} />
-            <div style={{
-              padding: '4px 8px',
-              background: '#e5e7eb',
-              borderRadius: '4px',
-              fontSize: '10px',
-              fontWeight: '500',
-              color: '#000000'
-            }}>Solo</div>
-            <h1 style={{ fontSize: '18px', fontWeight: '600', margin: 0, color: '#ffffff' }}>Dashboard / Business</h1>
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button style={{
-              padding: '6px 12px',
-              background: 'rgba(229, 231, 235, 0.9)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '8px',
-              color: '#000000',
-              fontSize: '11px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
-            }}>Default Mode</button>
-            <button style={{
-              padding: '6px 12px',
-              background: 'rgba(107, 114, 128, 0.2)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px',
-              color: '#9ca3af',
-              fontSize: '11px',
-              fontWeight: '400',
-              cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)'
-            }}>Edit Mode</button>
-            <button style={{
-              padding: '6px 8px',
-              background: 'rgba(249, 115, 22, 0.9)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              borderRadius: '8px',
-              color: '#ffffff',
-              fontSize: '12px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '24px',
-              height: '24px',
-              boxShadow: '0 4px 16px rgba(249, 115, 22, 0.3)'
-            }}>+</button>
-          </div>
-        </div>
+       {/* Main Content */}
+       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
 
         {/* KPI Grid */}
         <div style={{

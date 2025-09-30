@@ -61,6 +61,9 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Google callback error:', error);
+    // Get state from URL again since it might not be in scope
+    const { searchParams } = new URL(request.url);
+    const state = searchParams.get('state') || 'calendar';
     const redirectUrl = state === 'sheets' ? '/' : '/calendar';
     return NextResponse.redirect(
       `${process.env.NEXTAUTH_URL}${redirectUrl}?auth=error&message=${encodeURIComponent('Authentication failed')}`

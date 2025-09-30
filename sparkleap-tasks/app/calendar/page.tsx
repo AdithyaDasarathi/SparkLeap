@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { Task } from '@/types/task';
-import Navigation from '@/components/Navigation';
+import AppHeader from '@/components/AppHeader';
 import CalendarView from '@/components/CalendarView';
 import TaskList from '@/components/TaskList';
 import GoogleCalendarSync from '@/components/GoogleCalendarSync';
+import Navigation from '@/components/Navigation';
 
 export default function CalendarPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -123,6 +124,9 @@ export default function CalendarPage() {
       color: '#ffffff',
       fontFamily: 'Inter, sans-serif'
     }}>
+      {/* Global Header */}
+      <AppHeader title="Calendar" subtitle="Integration" />
+      
       {/* Background gradient effects */}
       <div style={{
         position: 'fixed',

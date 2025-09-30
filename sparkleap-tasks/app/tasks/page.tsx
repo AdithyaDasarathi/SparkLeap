@@ -3,43 +3,111 @@
 import { useState, useEffect } from 'react';
 import { Task } from '@/types/task';
 import TaskChat from '@/components/TaskChat';
-import Navigation from '@/components/Navigation';
+import AppHeader from '@/components/AppHeader';
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [isClient, setIsClient] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsClient(true);
-    const saved = localStorage.getItem('tasks');
-    if (saved) {
+    // Load user and their tasks from database
+    const loadUserAndTasks = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        const parsedTasks = parsed.map((task: any) => ({
-          ...task,
-          dueDate: task.dueDate ? new Date(task.dueDate) : null,
-          createdAt: new Date(task.createdAt)
-        }));
-        setTasks(parsedTasks);
-      } catch (err) {
-        console.error('Error loading tasks:', err);
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const userData = JSON.parse(userStr);
+          setUser(userData);
+          
+          // Load user-specific tasks from database
+          const response = await fetch(`/api/tasks?userId=${userData.id || userData.email}`);
+          const data = await response.json();
+          if (data.success) {
+            setTasks(data.tasks);
+            console.log('📋 Loaded tasks for user:', userData.email, '- Count:', data.tasks.length);
+          }
+        } else {
+          // Create demo user for development
+          const demoUser = {
+            id: 'demo-user',
+            email: 'demo@sparkleap.com',
+            name: 'Demo User',
+            picture: null
+          };
+          setUser(demoUser);
+          localStorage.setItem('user', JSON.stringify(demoUser));
+        }
+      } catch (error) {
+        console.error('Error loading user and tasks:', error);
       }
-    }
+      setIsLoading(false);
+    };
+
+    loadUserAndTasks();
   }, []);
 
-  useEffect(() => {
-    if (isClient) {
-      localStorage.setItem('tasks', JSON.stringify(tasks));
+  const handleAddTask = async (task: Task) => {
+    if (!user) return;
+    
+    try {
+      // Save task to database
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task, userId: user.id || user.email })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setTasks(prev => [...prev, data.task]);
+        console.log('💾 Task saved to database:', data.task.id);
+      }
+    } catch (error) {
+      console.error('Error saving task:', error);
+      // Fallback to local state
+      setTasks(prev => [...prev, task]);
     }
-  }, [tasks, isClient]);
-
-  const handleAddTask = (task: Task) => {
-    setTasks(prev => [...prev, task]);
   };
 
-  const clearAllTasks = () => {
-    setTasks([]);
+  const clearAllTasks = async () => {
+    if (!user) return;
+    
+    try {
+      // Clear tasks from database
+      const response = await fetch(`/api/tasks?userId=${user.id || user.email}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setTasks([]);
+        console.log('🗑️ Cleared all tasks for user:', user.email);
+      }
+    } catch (error) {
+      console.error('Error clearing tasks:', error);
+      // Fallback to local clear
+      setTasks([]);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #0c0c0e, #1a1a1f)',
+        color: '#ffffff'
+      }}>
+        <div style={{
+          width: '32px',
+          height: '32px',
+          border: '3px solid rgba(255, 255, 255, 0.3)',
+          borderTop: '3px solid #ffffff',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -48,6 +116,9 @@ export default function TasksPage() {
       color: '#ffffff',
       fontFamily: 'Inter, sans-serif'
     }}>
+      {/* Global Header */}
+      <AppHeader title="Tasks" subtitle="Management" />
+      
       {/* Background gradient effects */}
       <div style={{
         position: 'fixed',
@@ -95,9 +166,6 @@ export default function TasksPage() {
           animationDelay: '2s'
         }} />
       </div>
-
-      {/* Navigation Header */}
-      <Navigation currentPage="tasks" />
 
       {/* Main Content */}
       <div style={{
