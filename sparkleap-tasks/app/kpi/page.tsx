@@ -1,84 +1,22 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback } from 'react';
 import KPIDashboard from '@/components/KPIDashboard';
 import NotionConnect from '@/components/NotionConnect';
+import NotionMapping from '@/components/NotionMapping';
 import GoogleSheetsConnect from '@/components/GoogleSheetsConnect';
 import StripeConnect from '@/components/StripeConnect';
-import AppHeader from '@/components/AppHeader';
+import Navigation from '@/components/Navigation';
 
 export default function KPIPage() {
-  const router = useRouter();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Load user on mount
-  useEffect(() => {
-    try {
-      const userStr = localStorage.getItem('user');
-      console.log('🔍 Checking for user in localStorage:', !!userStr);
-      
-      if (userStr) {
-        const userData = JSON.parse(userStr);
-        setUser(userData);
-        console.log('👤 KPI Page loaded for user:', userData.email || userData.name);
-      } else {
-        // For development: create a demo user if no real user is found
-        console.log('⚠️ No user found in localStorage, creating demo user for development');
-        const demoUser = {
-          id: 'demo-user',
-          email: 'demo@sparkleap.com',
-          name: 'Demo User',
-          picture: null,
-          loginAt: new Date().toISOString()
-        };
-        setUser(demoUser);
-        localStorage.setItem('user', JSON.stringify(demoUser));
-        console.log('✅ Created demo user for development');
-      }
-    } catch (error) {
-      console.error('Error loading user:', error);
-      // Redirect to login on error
-      router.push('/login');
-    }
-    setIsLoading(false);
-  }, [router]);
+  const notionSourceId = (typeof window !== 'undefined') ? new URLSearchParams(window.location.search).get('notionSourceId') : null;
 
   // Callback to refresh the KPI dashboard
   const handleDataGenerated = useCallback(() => {
     console.log('🔄 Refreshing KPI dashboard...');
     setRefreshKey(prev => prev + 1);
   }, []);
-
-  // Show loading while checking authentication
-  if (isLoading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0c0c0e, #1a1a1f)',
-        color: '#ffffff'
-      }}>
-        <div style={{
-          width: '32px',
-          height: '32px',
-          border: '3px solid rgba(255, 255, 255, 0.3)',
-          borderTop: '3px solid #ffffff',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
-      </div>
-    );
-  }
-
-  // Don't render if no user (will redirect)
-  if (!user) {
-    return null;
-  }
 
   return (
     <div style={{
@@ -87,9 +25,6 @@ export default function KPIPage() {
       color: '#ffffff',
       fontFamily: 'Inter, sans-serif'
     }}>
-      {/* Global Header */}
-      <AppHeader title="Dashboard" subtitle="Business" />
-      
       {/* Background gradient effects */}
       <div style={{
         position: 'fixed',
@@ -138,6 +73,9 @@ export default function KPIPage() {
         }} />
       </div>
 
+      {/* Navigation Header */}
+      <Navigation currentPage="kpi" />
+
       {/* Main Content */}
       <div style={{
         position: 'relative',
@@ -157,7 +95,7 @@ export default function KPIPage() {
           overflow: 'hidden',
           marginBottom: '32px'
         }}>
-          <KPIDashboard key={refreshKey} userId={user?.id || user?.email || 'demo-user'} />
+          <KPIDashboard key={refreshKey} userId="demo-user" />
         </div>
 
         {/* Data Sources Section */}
@@ -176,6 +114,11 @@ export default function KPIPage() {
             overflow: 'hidden'
           }}>
             <NotionConnect />
+            {notionSourceId && (
+              <div style={{ marginTop: 16 }}>
+                <NotionMapping sourceId={notionSourceId} />
+              </div>
+            )}
           </div>
           <div style={{
             background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02))',

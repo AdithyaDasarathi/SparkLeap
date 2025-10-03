@@ -1,5 +1,11 @@
 import { KPI, KPIMetric, DataSourceConfig, KPISyncJob, KPIInsight } from '../types/kpi';
 import { Task } from '../types/task';
+import {
+  NotionDatabaseRecord,
+  NotionTaskRecord,
+  NotionUserRecord,
+  ExecutionSnapshotRecord
+} from '../types/notion';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -11,6 +17,10 @@ const KPIS_FILE = path.join(DATA_DIR, 'kpis.json');
 const SYNC_JOBS_FILE = path.join(DATA_DIR, 'syncjobs.json');
 const INSIGHTS_FILE = path.join(DATA_DIR, 'insights.json');
 const TASKS_FILE = path.join(DATA_DIR, 'tasks.json');
+const NOTION_DATABASES_FILE = path.join(DATA_DIR, 'notion_databases.json');
+const NOTION_TASKS_FILE = path.join(DATA_DIR, 'notion_tasks.json');
+const NOTION_USERS_FILE = path.join(DATA_DIR, 'notion_users.json');
+const EXECUTION_SNAPSHOTS_FILE = path.join(DATA_DIR, 'execution_snapshots.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -29,6 +39,10 @@ initializeFile(KPIS_FILE);
 initializeFile(SYNC_JOBS_FILE);
 initializeFile(INSIGHTS_FILE);
 initializeFile(TASKS_FILE);
+initializeFile(NOTION_DATABASES_FILE);
+initializeFile(NOTION_TASKS_FILE);
+initializeFile(NOTION_USERS_FILE);
+initializeFile(EXECUTION_SNAPSHOTS_FILE);
 
 // File-based storage functions
 const readData = (filePath: string) => {
@@ -56,6 +70,10 @@ const kpiStore = new Map<string, KPI>();
 const dataSourceStore = new Map<string, DataSourceConfig>();
 const syncJobStore = new Map<string, KPISyncJob>();
 const insightStore = new Map<string, KPIInsight>();
+const notionDatabaseStore = new Map<string, NotionDatabaseRecord>();
+const notionTaskStore = new Map<string, NotionTaskRecord>();
+const notionUserStore = new Map<string, NotionUserRecord>();
+const executionSnapshotStore = new Map<string, ExecutionSnapshotRecord>();
 
 // Load data from files on startup
 const loadDataFromFiles = () => {
@@ -78,6 +96,26 @@ const loadDataFromFiles = () => {
     const insights = readData(INSIGHTS_FILE);
     Object.entries(insights).forEach(([id, insight]) => {
       insightStore.set(id, insight as KPIInsight);
+    });
+
+    const notionDatabases = readData(NOTION_DATABASES_FILE);
+    Object.entries(notionDatabases).forEach(([id, rec]) => {
+      notionDatabaseStore.set(id, rec as NotionDatabaseRecord);
+    });
+
+    const notionTasks = readData(NOTION_TASKS_FILE);
+    Object.entries(notionTasks).forEach(([id, rec]) => {
+      notionTaskStore.set(id, rec as NotionTaskRecord);
+    });
+
+    const notionUsers = readData(NOTION_USERS_FILE);
+    Object.entries(notionUsers).forEach(([id, rec]) => {
+      notionUserStore.set(id, rec as NotionUserRecord);
+    });
+
+    const executionSnapshots = readData(EXECUTION_SNAPSHOTS_FILE);
+    Object.entries(executionSnapshots).forEach(([id, rec]) => {
+      executionSnapshotStore.set(id, rec as ExecutionSnapshotRecord);
     });
 
     console.log(`📊 Loaded data from files: ${Object.keys(kpis).length} KPIs, ${Object.keys(dataSources).length} data sources`);
@@ -104,6 +142,18 @@ const saveDataToFiles = () => {
 
     const insights = Object.fromEntries(insightStore);
     writeData(INSIGHTS_FILE, insights);
+
+    const notionDatabases = Object.fromEntries(notionDatabaseStore);
+    writeData(NOTION_DATABASES_FILE, notionDatabases);
+
+    const notionTasks = Object.fromEntries(notionTaskStore);
+    writeData(NOTION_TASKS_FILE, notionTasks);
+
+    const notionUsers = Object.fromEntries(notionUserStore);
+    writeData(NOTION_USERS_FILE, notionUsers);
+
+    const executionSnapshots = Object.fromEntries(executionSnapshotStore);
+    writeData(EXECUTION_SNAPSHOTS_FILE, executionSnapshots);
   } catch (error) {
     console.error('Error saving data to files:', error);
   }
@@ -545,3 +595,133 @@ export class DatabaseService {
     }
   }
 } 
+
+// Notion-specific persistence APIs
+export class NotionDatabaseService {
+  static async upsertDatabase(record: Omit<NotionDatabaseRecord, 'createdAt' | 'updatedAt'> & { createdAt?: string; updatedAt?: string }): Promise<NotionDatabaseRecord> {
+    const nowIso = new Date().toISOString();
+    const existing = notionDatabaseStore.get(record.id);
+    const newRecord: NotionDatabaseRecord = {
+      ...record,
+      createdAt: existing?.createdAt || record.createdAt || nowIso,
+      updatedAt: nowIso
+    };
+    notionDatabaseStore.set(record.id, newRecord);
+    const all = Object.fromEntries(notionDatabaseStore);
+    writeData(NOTION_DATABASES_FILE, all);
+    return newRecord;
+  }
+
+  static async getByUser(userId: string): Promise<NotionDatabaseRecord[]> {
+    return Array.from(notionDatabaseStore.values()).filter(d => d.userId === userId);
+  }
+
+  static async update(id: string, updates: Partial<NotionDatabaseRecord>): Promise<NotionDatabaseRecord | null> {
+    const existing = notionDatabaseStore.get(id);
+    if (!existing) return null;
+    const updated: NotionDatabaseRecord = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+    notionDatabaseStore.set(id, updated);
+    writeData(NOTION_DATABASES_FILE, Object.fromEntries(notionDatabaseStore));
+    return updated;
+  }
+
+  static async delete(id: string): Promise<boolean> {
+    const deleted = notionDatabaseStore.delete(id);
+    if (deleted) writeData(NOTION_DATABASES_FILE, Object.fromEntries(notionDatabaseStore));
+    return deleted;
+  }
+}
+
+export class NotionTaskService {
+  static async upsert(task: NotionTaskRecord): Promise<NotionTaskRecord> {
+    notionTaskStore.set(task.pageId, task);
+    writeData(NOTION_TASKS_FILE, Object.fromEntries(notionTaskStore));
+    return task;
+  }
+
+  static async upsertMany(tasks: NotionTaskRecord[]): Promise<number> {
+    for (const t of tasks) {
+      notionTaskStore.set(t.pageId, t);
+    }
+    writeData(NOTION_TASKS_FILE, Object.fromEntries(notionTaskStore));
+    return tasks.length;
+  }
+
+  static async getByDatabase(databaseId: string): Promise<NotionTaskRecord[]> {
+    return Array.from(notionTaskStore.values()).filter(t => t.databaseId === databaseId);
+  }
+
+  static async getByUser(userId: string): Promise<NotionTaskRecord[]> {
+    return Array.from(notionTaskStore.values()).filter(t => t.userId === userId);
+  }
+
+  static async deleteByDatabase(databaseId: string): Promise<number> {
+    let count = 0;
+    const all = Object.fromEntries(notionTaskStore);
+    Object.keys(all).forEach(id => {
+      const rec = (all as any)[id] as NotionTaskRecord;
+      if (rec.databaseId === databaseId) {
+        notionTaskStore.delete(id);
+        count++;
+      }
+    });
+    writeData(NOTION_TASKS_FILE, Object.fromEntries(notionTaskStore));
+    return count;
+  }
+}
+
+export class NotionUserService {
+  static async upsert(user: NotionUserRecord): Promise<NotionUserRecord> {
+    const nowIso = new Date().toISOString();
+    const existing = notionUserStore.get(user.notionUserId);
+    const rec: NotionUserRecord = {
+      ...user,
+      createdAt: existing?.createdAt || user.createdAt || nowIso,
+      updatedAt: nowIso
+    };
+    notionUserStore.set(user.notionUserId, rec);
+    writeData(NOTION_USERS_FILE, Object.fromEntries(notionUserStore));
+    return rec;
+  }
+
+  static async upsertMany(users: NotionUserRecord[]): Promise<number> {
+    for (const u of users) {
+      await this.upsert(u);
+    }
+    return users.length;
+  }
+
+  static async getByUser(userId: string): Promise<NotionUserRecord[]> {
+    return Array.from(notionUserStore.values()).filter(u => u.userId === userId);
+  }
+
+  static async get(notionUserId: string): Promise<NotionUserRecord | null> {
+    return notionUserStore.get(notionUserId) || null;
+  }
+}
+
+export class ExecutionSnapshotService {
+  static async upsert(snapshot: Omit<ExecutionSnapshotRecord, 'id' | 'createdAt'> & { id?: string }): Promise<ExecutionSnapshotRecord> {
+    const id = snapshot.id || crypto.randomUUID();
+    const rec: ExecutionSnapshotRecord = {
+      ...snapshot,
+      id,
+      createdAt: new Date().toISOString()
+    } as ExecutionSnapshotRecord;
+    executionSnapshotStore.set(id, rec);
+    writeData(EXECUTION_SNAPSHOTS_FILE, Object.fromEntries(executionSnapshotStore));
+    return rec;
+  }
+
+  static async listByUser(userId: string): Promise<ExecutionSnapshotRecord[]> {
+    return Array.from(executionSnapshotStore.values()).filter(s => s.userId === userId);
+  }
+
+  static async getByWeek(userId: string, weekStartIso: string): Promise<ExecutionSnapshotRecord | null> {
+    return (
+      Array.from(executionSnapshotStore.values()).find(
+        s => s.userId === userId && s.weekStart === weekStartIso
+      ) || null
+    );
+  }
+}

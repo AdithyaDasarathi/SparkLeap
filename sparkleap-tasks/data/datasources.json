@@ -11,5 +11,18 @@
     "id": "8cb6447a-e8e6-4367-b0b3-0ba5b6468b7d",
     "createdAt": "2025-09-28T04:39:34.007Z",
     "updatedAt": "2025-09-28T04:39:34.007Z"
+  },
+  "57e95428-d66b-45bd-ac6f-6e85c4d75511": {
+    "userId": "demo-user",
+    "source": "Notion",
+    "isActive": true,
+    "credentials": {
+      "encryptedData": "463aafffae1c8b24e5c7da6f23024ab09d32540bdb5d4ab84b8676536fdee970d32b4cd0de187c06ff9f64165068cea5",
+      "iv": "d0ed8ac98eb979676e57d02f1a395c0e"
+    },
+    "syncFrequency": "daily",
+    "id": "57e95428-d66b-45bd-ac6f-6e85c4d75511",
+    "createdAt": "2025-10-03T13:44:39.237Z",
+    "updatedAt": "2025-10-03T13:44:39.237Z"
   }
 }
