@@ -16,7 +16,7 @@ import { generateChatResponse } from '../utils/chatHelper';
 import { processTaskInput } from '../utils/taskProcessor';
 import type { Message } from '../types/message';
 import type { Task } from '../types/task';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';
 
 interface KPIDashboardProps {
   userId: string;

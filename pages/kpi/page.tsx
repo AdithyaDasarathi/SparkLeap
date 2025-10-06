@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/router';
 import KPIDashboard from '@/components/KPIDashboard';
 import NotionConnect from '@/components/NotionConnect';
 import GoogleSheetsConnect from '@/components/GoogleSheetsConnect';

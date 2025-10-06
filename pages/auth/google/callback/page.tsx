@@ -1,18 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/router';
 
 export default function GoogleOAuthCallback() {
-  const searchParams = useSearchParams();
+  const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(true);
 
   useEffect(() => {
     const processAuth = async () => {
       try {
-        const code = searchParams.get('code');
-        const error = searchParams.get('error');
-        const state = searchParams.get('state');
+        const code = router.query.code as string;
+        const error = router.query.error as string;
+        const state = router.query.state as string;
         
         if (code) {
           // Exchange code for user info and create session
@@ -72,7 +72,7 @@ export default function GoogleOAuthCallback() {
     };
 
     processAuth();
-  }, [searchParams]);
+  }, [router.query]);
 
   return (
     <div style={{
