@@ -1,4 +1,3 @@
-'use client';
 
 import CSVUpload from '@/components/CSVUpload';
 import AppHeader from '@/components/AppHeader';

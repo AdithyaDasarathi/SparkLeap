@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import KPIDashboard from '@/components/KPIDashboard';

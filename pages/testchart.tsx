@@ -1,4 +1,3 @@
-'use client';
 import KPICharts from '@/components/KPICharts';
 
 export default function TestChartPage() {
