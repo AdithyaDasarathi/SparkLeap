@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "npm run build:clean",
+    "build:clean": "rm -rf .next && rm -rf node_modules/.cache"
   },
   "dependencies": {
     "@heroicons/react": "^2.0.18",
@@ -23,8 +25,8 @@
     "next": "13.4.19",
     "openai": "^4.10.0",
     "postcss": "^8.4.29",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "stripe": "^18.5.0"
   },
   "devDependencies": {
