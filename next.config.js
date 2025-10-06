@@ -24,12 +24,9 @@ const nextConfig = {
       };
     }
     
-    // Fix React module resolution issues
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'react': require.resolve('react'),
-      'react-dom': require.resolve('react-dom')
-    };
+    // Ensure React modules are properly resolved
+    config.resolve.modules = ['node_modules'];
+    config.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx'];
     
     return config;
   }
