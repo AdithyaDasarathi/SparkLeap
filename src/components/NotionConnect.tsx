@@ -343,6 +343,18 @@ export default function NotionConnect() {
         backgroundClip: 'text'
       }}>Connect to Notion</h2>
       
+      {/* Debug info */}
+      <div style={{ 
+        background: 'rgba(255, 255, 255, 0.1)', 
+        padding: '10px', 
+        borderRadius: '8px', 
+        marginBottom: '20px',
+        fontSize: '12px',
+        color: '#ffffff'
+      }}>
+        Debug: Component loaded successfully
+      </div>
+      
       {!isConnected ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
