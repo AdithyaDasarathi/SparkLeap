@@ -6,7 +6,7 @@ const nextConfig = {
   distDir: '.next',
   pageExtensions: ['js', 'jsx', 'ts', 'tsx'],
   env: {
-    NEXT_PUBLIC_OPENAI_API_KEY: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+    NEXT_PUBLIC_OPENAI_API_KEY: process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'placeholder-key',
     NEXT_PUBLIC_OPENAI_API_BASE_URL: process.env.NEXT_PUBLIC_OPENAI_API_BASE_URL || 'https://api.openai.com/v1'
   },
   webpack: (config, { isServer }) => {
@@ -15,7 +15,12 @@ const nextConfig = {
       config.resolve.fallback = {
         fs: false,
         net: false,
-        tls: false
+        tls: false,
+        crypto: false,
+        stream: false,
+        util: false,
+        buffer: false,
+        process: false
       };
     }
     return config;

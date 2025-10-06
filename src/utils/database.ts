@@ -1,37 +1,57 @@
 import { KPI, KPIMetric, DataSourceConfig, KPISyncJob, KPIInsight } from '../types/kpi';
 import { Task } from '../types/task';
 import * as crypto from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
 
-// Simple file-based storage for persistence
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DATA_SOURCES_FILE = path.join(DATA_DIR, 'datasources.json');
-const KPIS_FILE = path.join(DATA_DIR, 'kpis.json');
-const SYNC_JOBS_FILE = path.join(DATA_DIR, 'syncjobs.json');
-const INSIGHTS_FILE = path.join(DATA_DIR, 'insights.json');
-const TASKS_FILE = path.join(DATA_DIR, 'tasks.json');
+// Server-side only imports
+let fs: any;
+let path: any;
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+if (typeof window === 'undefined') {
+  fs = require('fs');
+  path = require('path');
 }
 
-// Initialize files if they don't exist
-const initializeFile = (filePath: string) => {
-  if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify({}));
-  }
-};
+// Simple file-based storage for persistence
+let DATA_DIR: string;
+let DATA_SOURCES_FILE: string;
+let KPIS_FILE: string;
+let SYNC_JOBS_FILE: string;
+let INSIGHTS_FILE: string;
+let TASKS_FILE: string;
 
-initializeFile(DATA_SOURCES_FILE);
-initializeFile(KPIS_FILE);
-initializeFile(SYNC_JOBS_FILE);
-initializeFile(INSIGHTS_FILE);
-initializeFile(TASKS_FILE);
+// Initialize file paths only on server-side
+if (typeof window === 'undefined') {
+  DATA_DIR = path.join(process.cwd(), 'data');
+  DATA_SOURCES_FILE = path.join(DATA_DIR, 'datasources.json');
+  KPIS_FILE = path.join(DATA_DIR, 'kpis.json');
+  SYNC_JOBS_FILE = path.join(DATA_DIR, 'syncjobs.json');
+  INSIGHTS_FILE = path.join(DATA_DIR, 'insights.json');
+  TASKS_FILE = path.join(DATA_DIR, 'tasks.json');
+
+  // Ensure data directory exists
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+
+  // Initialize files if they don't exist
+  const initializeFile = (filePath: string) => {
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, JSON.stringify({}));
+    }
+  };
+
+  initializeFile(DATA_SOURCES_FILE);
+  initializeFile(KPIS_FILE);
+  initializeFile(SYNC_JOBS_FILE);
+  initializeFile(INSIGHTS_FILE);
+  initializeFile(TASKS_FILE);
+}
 
 // File-based storage functions
 const readData = (filePath: string) => {
+  if (typeof window !== 'undefined') {
+    return {};
+  }
   try {
     const data = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(data);
@@ -42,6 +62,9 @@ const readData = (filePath: string) => {
 };
 
 const writeData = (filePath: string, data: any) => {
+  if (typeof window !== 'undefined') {
+    return false;
+  }
   try {
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
     return true;
@@ -59,6 +82,9 @@ const insightStore = new Map<string, KPIInsight>();
 
 // Load data from files on startup
 const loadDataFromFiles = () => {
+  if (typeof window !== 'undefined') {
+    return;
+  }
   try {
     const kpis = readData(KPIS_FILE);
     Object.entries(kpis).forEach(([id, kpi]) => {
@@ -92,6 +118,9 @@ const loadDataFromFiles = () => {
 
 // Save data to files
 const saveDataToFiles = () => {
+  if (typeof window !== 'undefined') {
+    return;
+  }
   try {
     const kpis = Object.fromEntries(kpiStore);
     writeData(KPIS_FILE, kpis);
@@ -109,12 +138,14 @@ const saveDataToFiles = () => {
   }
 };
 
-// Load data on startup
-loadDataFromFiles();
+// Load data on startup (server-side only)
+if (typeof window === 'undefined') {
+  loadDataFromFiles();
 
-// Save data periodically and on process exit
-setInterval(saveDataToFiles, 5000); // Save every 5 seconds
-process.on('beforeExit', saveDataToFiles);
+  // Save data periodically and on process exit
+  setInterval(saveDataToFiles, 5000); // Save every 5 seconds
+  process.on('beforeExit', saveDataToFiles);
+}
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'your-secret-key-here';
 
