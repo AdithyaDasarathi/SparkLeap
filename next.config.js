@@ -3,8 +3,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true
   },
-  distDir: '.next',
-  pageExtensions: ['js', 'jsx', 'ts', 'tsx'],
   env: {
     NEXT_PUBLIC_OPENAI_API_KEY: process.env.NEXT_PUBLIC_OPENAI_API_KEY || 'placeholder-key',
     NEXT_PUBLIC_OPENAI_API_BASE_URL: process.env.NEXT_PUBLIC_OPENAI_API_BASE_URL || 'https://api.openai.com/v1'
@@ -23,10 +21,6 @@ const nextConfig = {
         process: false
       };
     }
-    
-    // Ensure React modules are properly resolved
-    config.resolve.modules = ['node_modules'];
-    config.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx'];
     
     return config;
   }
