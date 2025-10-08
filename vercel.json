@@ -11,5 +11,7 @@
     "env": {
       "NEXT_TELEMETRY_DISABLED": "1"
     }
-  }
+  },
+  "installCommand": "npm ci --prefer-offline --no-audit",
+  "buildCache": false
 }
