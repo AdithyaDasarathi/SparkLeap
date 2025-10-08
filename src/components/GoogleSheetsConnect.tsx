@@ -801,10 +801,10 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
               margin: 0,
               paddingLeft: '16px'
             }}>
-              <li style={{ marginBottom: '4px' }}>Make sure your Google Sheet is shared with "Anyone with the link can view"</li>
+              <li style={{ marginBottom: '4px' }}>Make sure your Google Sheet is shared with &quot;Anyone with the link can view&quot;</li>
               <li style={{ marginBottom: '4px' }}>Your sheet should have column headers that match KPI names (MRR, Net Profit, etc.)</li>
               <li style={{ marginBottom: '4px' }}>Data should be in rows below the headers</li>
-              <li>Click "Connect Google Sheets" to authorize access</li>
+              <li>Click &quot;Connect Google Sheets&quot; to authorize access</li>
             </ol>
           </div>
         </div>

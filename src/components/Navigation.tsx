@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 
 interface NavigationProps {
   currentPage?: 'home' | 'tasks' | 'calendar' | 'kpi';
@@ -49,12 +50,12 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage = 'home' }) => {
             <a href="#faqs" onClick={(e) => handleSmoothScroll(e, 'faqs')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer' }}>FAQ</a>
           </div>
           <div style={{ marginLeft: 'auto' }}>
-            <a href="/tasks" style={{
+            <Link href="/tasks" style={{
               display: 'inline-flex', padding: '8px 14px', borderRadius: '8px',
               background: 'linear-gradient(135deg, #FF8669, #DA595D)', color: '#0b0b0d',
               fontSize: '12px', fontWeight: 600, textDecoration: 'none',
               boxShadow: '0 8px 20px rgba(218, 89, 93, 0.35)'
-            }}>Join</a>
+            }}>Join</Link>
           </div>
         </div>
       </header>

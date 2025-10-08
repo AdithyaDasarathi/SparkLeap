@@ -43,7 +43,7 @@ export default function CSVUploadPage() {
             <div>
               <h3 className="font-medium text-gray-900">3. Sync Your Data</h3>
               <p className="text-gray-600">
-                After uploading, click "Sync" to import the data into your KPI dashboard.
+                After uploading, click &quot;Sync&quot; to import the data into your KPI dashboard.
                 You can re-sync anytime to update your metrics.
               </p>
             </div>

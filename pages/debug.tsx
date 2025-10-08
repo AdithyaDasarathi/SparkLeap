@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function DebugPage() {
   return (
     <div style={{ 
@@ -15,13 +17,13 @@ export default function DebugPage() {
         This page has no imports - testing basic Next.js 12 routing.
       </p>
       <div style={{ marginTop: '20px' }}>
-        <a href="/" style={{ 
+        <Link href="/" style={{ 
           color: 'white', 
           textDecoration: 'underline',
           fontSize: '16px'
         }}>
           ← Go back to home
-        </a>
+        </Link>
       </div>
     </div>
   );
