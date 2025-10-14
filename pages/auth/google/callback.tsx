@@ -32,6 +32,8 @@ export default function GoogleOAuthCallback() {
             // Send success to parent window or redirect
             if (window.opener) {
               window.opener.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS', user: result.user }, window.location.origin);
+              // Close popup after sending message
+              setTimeout(() => window.close(), 100);
             } else {
               if (isSheets) {
                 // Redirect to KPI dashboard with success message for sheets
@@ -48,21 +50,20 @@ export default function GoogleOAuthCallback() {
           // Send the error to the parent window
           if (window.opener) {
             window.opener.postMessage({ type: 'GOOGLE_LOGIN_ERROR', error }, window.location.origin);
+            setTimeout(() => window.close(), 100);
           } else {
             // If no opener, redirect back to login with error
             window.location.href = `/login?error=${encodeURIComponent(error)}`;
           }
         } else {
           // No code or error, redirect to login
-          window.location.href = '/login';
-        }
-        
-        // Close the popup window after a short delay
-        setTimeout(() => {
           if (window.opener) {
-            window.close();
+            window.opener.postMessage({ type: 'GOOGLE_LOGIN_ERROR', error: 'No authorization code received' }, window.location.origin);
+            setTimeout(() => window.close(), 100);
+          } else {
+            window.location.href = '/login';
           }
-        }, 1000);
+        }
       } catch (err) {
         console.error('Auth callback error:', err);
         setIsProcessing(false);

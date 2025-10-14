@@ -40,6 +40,45 @@ export default function TasksPage() {
     loadUserAndTasks();
   }, []);
 
+  const syncTaskToCalendar = async (task: Task) => {
+    try {
+      const credsStr = localStorage.getItem('googleCalendarCredentials');
+      if (!credsStr) return; // Not connected to Google Calendar
+      if (!task.dueDate) return; // Only sync tasks with dates
+
+      const credentials = JSON.parse(credsStr);
+      const start = new Date(task.dueDate);
+      if (task.dueTime) {
+        const [h, m] = task.dueTime.split(':').map(Number);
+        start.setHours(h, m, 0, 0);
+      }
+      const end = new Date(start);
+      end.setHours(start.getHours() + 1);
+
+      const res = await fetch('/api/calendar/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          summary: task.title,
+          startISO: start.toISOString(),
+          endISO: end.toISOString(),
+          description: `Task from SparkLeap. Priority: ${task.priority}.`,
+          credentials
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.warn('Calendar create failed:', data.error || res.statusText);
+        return;
+      }
+      const data = await res.json();
+      console.log('🗓️ Calendar event created:', data.eventId);
+    } catch (e) {
+      console.warn('Calendar sync skipped/error:', e);
+    }
+  };
+
   const handleAddTask = async (task: Task) => {
     if (!user) return;
     
@@ -54,11 +93,15 @@ export default function TasksPage() {
       if (data.success) {
         setTasks(prev => [...prev, data.task]);
         console.log('💾 Task saved to database:', data.task.id);
+        // Fire-and-forget calendar sync
+        syncTaskToCalendar(data.task);
       }
     } catch (error) {
       console.error('Error saving task:', error);
       // Fallback to local state
       setTasks(prev => [...prev, task]);
+      // Try to sync even for local fallback
+      syncTaskToCalendar(task);
     }
   };
 
