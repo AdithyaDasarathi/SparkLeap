@@ -15,6 +15,7 @@ export default function GoogleOAuthCallback() {
         console.log('🔍 OAuth callback received:', { code: !!code, error, state, hasOpener: !!window.opener });
         
         if (code) {
+          console.log('🔄 Exchanging code for user info...');
           // Exchange code for user info and create session
           const response = await fetch('/api/auth/google/exchange', {
             method: 'POST',
@@ -22,7 +23,11 @@ export default function GoogleOAuthCallback() {
             body: JSON.stringify({ code })
           });
           
+          console.log('📡 Exchange response status:', response.status);
+          console.log('📡 Exchange response ok:', response.ok);
+          
           const result = await response.json();
+          console.log('📡 Exchange result:', result);
           
           if (result.success) {
             // Store user info in localStorage for demo (in production, use secure sessions)
@@ -54,6 +59,7 @@ export default function GoogleOAuthCallback() {
               window.location.href = `/kpi?auth=success&user=${userParam}`;
             }
           } else {
+            console.error('❌ Exchange failed:', result);
             throw new Error(result.error || 'Authentication failed');
           }
         } else if (error) {
