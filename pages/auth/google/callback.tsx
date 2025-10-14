@@ -12,6 +12,8 @@ export default function GoogleOAuthCallback() {
         const error = router.query.error as string;
         const state = router.query.state as string;
         
+        console.log('🔍 OAuth callback received:', { code: !!code, error, state, hasOpener: !!window.opener });
+        
         if (code) {
           // Exchange code for user info and create session
           const response = await fetch('/api/auth/google/exchange', {
@@ -29,11 +31,17 @@ export default function GoogleOAuthCallback() {
             // Check if this was for Google Sheets integration (from state parameter)
             const isSheets = state && state.startsWith('sheets_');
             
+            console.log('✅ Login successful, sending message to parent:', { hasOpener: !!window.opener, isSheets });
+            
             // Send success to parent window or redirect
             if (window.opener) {
               window.opener.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS', user: result.user }, window.location.origin);
+              console.log('📤 Message sent to parent window');
               // Close popup after sending message
-              setTimeout(() => window.close(), 100);
+              setTimeout(() => {
+                console.log('🔒 Closing popup window');
+                window.close();
+              }, 100);
             } else {
               if (isSheets) {
                 // Redirect to KPI dashboard with success message for sheets

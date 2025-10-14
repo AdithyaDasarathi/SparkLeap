@@ -53,27 +53,43 @@ export default function Login() {
       }
 
       // Listen for the authorization success
+      let popupClosed = false;
       const checkClosed = setInterval(() => {
-        if (popup?.closed) {
+        if (popup?.closed && !popupClosed) {
+          popupClosed = true;
           clearInterval(checkClosed);
+          window.removeEventListener('message', handleMessage);
           setIsLoading(false);
-          setError('Authorization cancelled');
+          // Only show cancelled message if we haven't received a success/error message
+          setTimeout(() => {
+            if (!popupClosed) return; // Message was received, don't show cancelled
+            setError('Authorization cancelled');
+          }, 100);
         }
       }, 1000);
 
       // Handle message from popup
       const handleMessage = async (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return;
+        console.log('📨 Received message from popup:', event.data);
+        if (event.origin !== window.location.origin) {
+          console.log('❌ Message from wrong origin:', event.origin);
+          return;
+        }
 
         if (event.data.type === 'GOOGLE_LOGIN_SUCCESS') {
+          console.log('✅ Login success message received');
+          popupClosed = true; // Prevent cancelled message
           clearInterval(checkClosed);
           popup?.close();
           window.removeEventListener('message', handleMessage);
           
           // Store user and redirect to dashboard
           localStorage.setItem('user', JSON.stringify(event.data.user));
+          console.log('💾 User stored, redirecting to dashboard');
           window.location.href = '/kpi';
         } else if (event.data.type === 'GOOGLE_LOGIN_ERROR') {
+          console.log('❌ Login error message received:', event.data.error);
+          popupClosed = true; // Prevent cancelled message
           clearInterval(checkClosed);
           popup?.close();
           window.removeEventListener('message', handleMessage);
