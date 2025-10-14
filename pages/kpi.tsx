@@ -16,20 +16,22 @@ export default function KPIPage() {
   useEffect(() => {
     try {
       const userStr = localStorage.getItem('user');
-      console.log('🔍 Checking for user in localStorage:', !!userStr);
+      console.log('🔍 KPI Page - Checking for user in localStorage:', !!userStr);
+      console.log('🔍 KPI Page - Raw user data:', userStr);
       
       if (userStr) {
         const userData = JSON.parse(userStr);
         setUser(userData);
         console.log('👤 KPI Page loaded for user:', userData.email || userData.name);
+        console.log('👤 KPI Page - Full user data:', userData);
       } else {
         // No user found - redirect to login page
-        console.log('⚠️ No user found in localStorage, redirecting to login');
+        console.log('⚠️ KPI Page - No user found in localStorage, redirecting to login');
         router.push('/login');
         return;
       }
     } catch (error) {
-      console.error('Error loading user:', error);
+      console.error('❌ KPI Page - Error loading user:', error);
       // Redirect to login on error
       router.push('/login');
       return;

@@ -27,20 +27,27 @@ export default function GoogleOAuthCallback() {
           if (result.success) {
             // Store user info in localStorage for demo (in production, use secure sessions)
             localStorage.setItem('user', JSON.stringify(result.user));
+            console.log('💾 User stored in localStorage:', result.user);
+            
+            // Verify storage worked
+            const storedUser = localStorage.getItem('user');
+            console.log('🔍 Verification - stored user:', storedUser ? 'Found' : 'Not found');
             
             // Check if this was for Google Sheets integration (from state parameter)
             const isSheets = state && state.startsWith('sheets_');
             
-            console.log('✅ Login successful, sending message to parent:', { hasOpener: !!window.opener, isSheets });
+            console.log('✅ Login successful, redirecting to dashboard:', { isSheets });
             
-            // Always redirect to dashboard (same-window flow)
-            if (isSheets) {
-              // Redirect to KPI dashboard with success message for sheets
-              window.location.href = '/kpi?auth=success&source=sheets';
-            } else {
-              // Regular login - redirect directly to dashboard
-              window.location.href = '/kpi?auth=success';
-            }
+            // Small delay to ensure localStorage is set, then redirect
+            setTimeout(() => {
+              if (isSheets) {
+                // Redirect to KPI dashboard with success message for sheets
+                window.location.href = '/kpi?auth=success&source=sheets';
+              } else {
+                // Regular login - redirect directly to dashboard
+                window.location.href = '/kpi?auth=success';
+              }
+            }, 100);
           } else {
             throw new Error(result.error || 'Authentication failed');
           }
