@@ -63,7 +63,7 @@ export async function callChatApi(messages: Message[]) {
 
       if (!apiKey) {
         console.error('OpenAI API key is missing');
-        return 'I apologize, but I am not properly configured to answer questions right now. Please check the OpenAI API key configuration.';
+        return '• 🔧 **Demo Mode**: AI chat is not configured yet.\n• 💡 **To enable**: Add your OpenAI API key to environment variables.\n• 🎯 **For now**: You can still use all other features like tasks, calendar, and KPI tracking.\n• 📊 **Try asking**: "Show me my tasks" or "What are my KPIs?"';
       }
 
       console.log('API Key loaded, Base URL:', baseUrl);
@@ -124,11 +124,11 @@ export async function callChatApi(messages: Message[]) {
         
         // Return more specific error messages
         if (response.status === 401) {
-          return 'Authentication failed. Please check your OpenAI API key is correct and active.';
+          return '• 🔑 **API Key Issue**: Your OpenAI API key is invalid or expired.\n• 💡 **Solution**: Check your API key in Vercel environment variables.\n• 🎯 **Demo Mode**: All other features work without AI chat.\n• 📊 **Try**: Tasks, Calendar, and KPI tracking are fully functional.';
         } else if (response.status === 403) {
-          return 'Access denied. Your API key might not have access to the GPT model or might be restricted.';
+          return '• 🚫 **Access Denied**: Your API key might not have access to GPT models.\n• 💡 **Solution**: Check your OpenAI account permissions and billing.\n• 🎯 **Demo Mode**: Other features work independently.\n• 📊 **Try**: Explore tasks and KPI dashboard.';
         } else if (response.status === 400) {
-          return 'Invalid request. There might be an issue with the message format.';
+          return '• ⚠️ **Request Error**: There might be an issue with the message format.\n• 💡 **Solution**: Try rephrasing your question.\n• 🎯 **Demo Mode**: All other features work normally.\n• 📊 **Try**: "What are my current KPIs?" or "Show my tasks".';
         }
         
         return `I encountered an error (${response.status}). Please try again or check your API configuration.`;
