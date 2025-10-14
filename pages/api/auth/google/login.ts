@@ -1,6 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextApiRequest, NextApiResponse } from 'next';
 
-export async function GET(request: NextRequest) {
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     // Check if Google OAuth credentials are configured
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -8,15 +12,14 @@ export async function GET(request: NextRequest) {
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${baseUrl}/api/auth/google/callback`;
 
     if (!clientId) {
-      return NextResponse.json({ 
+      return res.status(500).json({ 
         error: 'Google OAuth not configured',
         message: 'Please set GOOGLE_CLIENT_ID in environment variables'
-      }, { status: 500 });
+      });
     }
 
     // Check if this is for Google Sheets integration
-    const { searchParams } = new URL(request.url);
-    const intent = searchParams.get('intent');
+    const intent = req.query.intent as string;
     
     // Google OAuth scopes - include Sheets scope if needed
     let scopes = [
@@ -48,12 +51,12 @@ export async function GET(request: NextRequest) {
     console.log('🔗 Redirecting to Google OAuth:', googleAuthUrl.toString());
 
     // Redirect to Google OAuth
-    return NextResponse.redirect(googleAuthUrl.toString());
+    return res.redirect(googleAuthUrl.toString());
   } catch (error) {
     console.error('Error initiating Google login:', error);
-    return NextResponse.json({ 
+    return res.status(500).json({ 
       error: 'Failed to initiate login',
       message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    });
   }
 }

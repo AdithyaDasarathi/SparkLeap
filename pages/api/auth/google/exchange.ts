@@ -1,14 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextApiRequest, NextApiResponse } from 'next';
 
-export async function POST(request: NextRequest) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    const { code } = await request.json();
+    const { code } = req.body;
 
     if (!code) {
-      return NextResponse.json({ 
+      return res.status(400).json({ 
         success: false, 
         error: 'Authorization code is required' 
-      }, { status: 400 });
+      });
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -17,10 +21,10 @@ export async function POST(request: NextRequest) {
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${baseUrl}/api/auth/google/callback`;
 
     if (!clientId || !clientSecret) {
-      return NextResponse.json({ 
+      return res.status(500).json({ 
         success: false, 
         error: 'Google OAuth credentials not configured' 
-      }, { status: 500 });
+      });
     }
 
     // Exchange authorization code for tokens
@@ -41,11 +45,11 @@ export async function POST(request: NextRequest) {
     if (!tokenResponse.ok) {
       const tokenError = await tokenResponse.json();
       console.error('Token exchange error:', tokenError);
-      return NextResponse.json({ 
+      return res.status(400).json({ 
         success: false, 
         error: 'Failed to exchange authorization code',
         details: tokenError
-      }, { status: 400 });
+      });
     }
 
     const tokens = await tokenResponse.json();
@@ -60,11 +64,11 @@ export async function POST(request: NextRequest) {
     if (!userResponse.ok) {
       const userError = await userResponse.json();
       console.error('User info error:', userError);
-      return NextResponse.json({ 
+      return res.status(400).json({ 
         success: false, 
         error: 'Failed to get user information',
         details: userError
-      }, { status: 400 });
+      });
     }
 
     const userInfo = await userResponse.json();
@@ -83,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Google login successful for:', userInfo.email);
 
-    return NextResponse.json({
+    return res.status(200).json({
       success: true,
       user: user,
       message: 'Login successful'
@@ -91,10 +95,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Google auth exchange error:', error);
-    return NextResponse.json({ 
+    return res.status(500).json({ 
       success: false, 
       error: 'Authentication failed',
       message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    });
   }
 }
