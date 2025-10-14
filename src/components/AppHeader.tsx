@@ -130,6 +130,25 @@ export default function AppHeader({ title = "SparkLeap", subtitle }: AppHeaderPr
         </button>
 
         <button
+          onClick={() => router.push('/calendar')}
+          style={{
+            padding: '6px 12px',
+            background: 'rgba(147, 197, 253, 0.8)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '8px',
+            color: '#0b0b0d',
+            fontSize: '11px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(147, 197, 253, 0.3)',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          Calendar
+        </button>
+
+        <button
           onClick={() => router.push('/tasks')}
           style={{
             padding: '6px 12px',
