@@ -15,9 +15,33 @@ export default function KPIPage() {
   // Load user on mount
   useEffect(() => {
     try {
-      const userStr = localStorage.getItem('user');
-      console.log('🔍 KPI Page - Checking for user in localStorage:', !!userStr);
-      console.log('🔍 KPI Page - Raw user data:', userStr);
+      // Check localStorage first
+      let userStr = localStorage.getItem('user');
+      console.log('🔍 KPI Page - Checking localStorage:', !!userStr);
+      
+      // If not in localStorage, check sessionStorage
+      if (!userStr) {
+        userStr = sessionStorage.getItem('user');
+        console.log('🔍 KPI Page - Checking sessionStorage:', !!userStr);
+      }
+      
+      // If not in storage, check URL parameters (from OAuth redirect)
+      if (!userStr) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userParam = urlParams.get('user');
+        if (userParam) {
+          userStr = decodeURIComponent(userParam);
+          console.log('🔍 KPI Page - Found user in URL params');
+          // Store in localStorage for future use
+          localStorage.setItem('user', userStr);
+          sessionStorage.setItem('user', userStr);
+          // Clean up URL
+          const newUrl = window.location.pathname + (urlParams.get('auth') ? '?auth=success' : '');
+          window.history.replaceState({}, '', newUrl);
+        }
+      }
+      
+      console.log('🔍 KPI Page - Final user data found:', !!userStr);
       
       if (userStr) {
         const userData = JSON.parse(userStr);
@@ -26,7 +50,7 @@ export default function KPIPage() {
         console.log('👤 KPI Page - Full user data:', userData);
       } else {
         // No user found - redirect to login page
-        console.log('⚠️ KPI Page - No user found in localStorage, redirecting to login');
+        console.log('⚠️ KPI Page - No user found anywhere, redirecting to login');
         router.push('/login');
         return;
       }

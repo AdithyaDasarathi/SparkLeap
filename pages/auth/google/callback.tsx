@@ -29,25 +29,30 @@ export default function GoogleOAuthCallback() {
             localStorage.setItem('user', JSON.stringify(result.user));
             console.log('💾 User stored in localStorage:', result.user);
             
+            // Also store in sessionStorage as backup
+            sessionStorage.setItem('user', JSON.stringify(result.user));
+            console.log('💾 User also stored in sessionStorage');
+            
             // Verify storage worked
             const storedUser = localStorage.getItem('user');
-            console.log('🔍 Verification - stored user:', storedUser ? 'Found' : 'Not found');
+            const sessionUser = sessionStorage.getItem('user');
+            console.log('🔍 Verification - localStorage user:', storedUser ? 'Found' : 'Not found');
+            console.log('🔍 Verification - sessionStorage user:', sessionUser ? 'Found' : 'Not found');
             
             // Check if this was for Google Sheets integration (from state parameter)
             const isSheets = state && state.startsWith('sheets_');
             
             console.log('✅ Login successful, redirecting to dashboard:', { isSheets });
             
-            // Small delay to ensure localStorage is set, then redirect
-            setTimeout(() => {
-              if (isSheets) {
-                // Redirect to KPI dashboard with success message for sheets
-                window.location.href = '/kpi?auth=success&source=sheets';
-              } else {
-                // Regular login - redirect directly to dashboard
-                window.location.href = '/kpi?auth=success';
-              }
-            }, 100);
+            // Redirect immediately with user data in URL as backup
+            const userParam = encodeURIComponent(JSON.stringify(result.user));
+            if (isSheets) {
+              // Redirect to KPI dashboard with success message for sheets
+              window.location.href = `/kpi?auth=success&source=sheets&user=${userParam}`;
+            } else {
+              // Regular login - redirect directly to dashboard
+              window.location.href = `/kpi?auth=success&user=${userParam}`;
+            }
           } else {
             throw new Error(result.error || 'Authentication failed');
           }
