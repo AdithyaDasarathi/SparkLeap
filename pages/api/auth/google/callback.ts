@@ -21,15 +21,12 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Redirect to the callback page with the code
-    const callbackPageUrl = new URL('/auth/google/callback', `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`);
-    callbackPageUrl.searchParams.append('code', code as string);
-    if (state) {
-      callbackPageUrl.searchParams.append('state', state as string);
-    }
+    const baseUrl = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
+    const callbackPageUrl = `${baseUrl}/auth/google/callback?code=${encodeURIComponent(code as string)}${state ? `&state=${encodeURIComponent(state as string)}` : ''}`;
 
-    console.log('🔗 Redirecting to callback page:', callbackPageUrl.toString());
+    console.log('🔗 Redirecting to callback page:', callbackPageUrl);
 
-    return res.redirect(callbackPageUrl.toString());
+    return res.redirect(callbackPageUrl);
   } catch (error) {
     console.error('❌ Google OAuth callback error:', error);
     return res.redirect('/login?error=callback_failed');
