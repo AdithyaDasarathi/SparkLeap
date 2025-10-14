@@ -37,8 +37,8 @@ export default function GoogleOAuthCallback() {
                 // Redirect to KPI dashboard with success message for sheets
                 window.location.href = '/kpi?auth=success&source=sheets';
               } else {
-                // Regular login - redirect to login success page
-                window.location.href = '/login?success=true';
+                // Regular login - redirect directly to dashboard
+                window.location.href = '/kpi?auth=success';
               }
             }
           } else {
