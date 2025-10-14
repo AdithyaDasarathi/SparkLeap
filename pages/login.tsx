@@ -41,75 +41,8 @@ export default function Login() {
         return;
       }
       
-      // Open Google OAuth in a popup
-      const popup = window.open(
-        '/api/auth/google/login',
-        'google-oauth',
-        'width=500,height=600,scrollbars=yes,resizable=yes,top=100,left=100'
-      );
-
-      if (!popup) {
-        throw new Error('Popup blocked. Please allow popups for this site and try again.');
-      }
-
-      // Listen for the authorization success
-      let popupClosed = false;
-      const checkClosed = setInterval(() => {
-        if (popup?.closed && !popupClosed) {
-          popupClosed = true;
-          clearInterval(checkClosed);
-          window.removeEventListener('message', handleMessage);
-          setIsLoading(false);
-          // Only show cancelled message if we haven't received a success/error message
-          setTimeout(() => {
-            if (!popupClosed) return; // Message was received, don't show cancelled
-            setError('Authorization cancelled');
-          }, 100);
-        }
-      }, 1000);
-
-      // Handle message from popup
-      const handleMessage = async (event: MessageEvent) => {
-        console.log('📨 Received message from popup:', event.data);
-        if (event.origin !== window.location.origin) {
-          console.log('❌ Message from wrong origin:', event.origin);
-          return;
-        }
-
-        if (event.data.type === 'GOOGLE_LOGIN_SUCCESS') {
-          console.log('✅ Login success message received');
-          popupClosed = true; // Prevent cancelled message
-          clearInterval(checkClosed);
-          popup?.close();
-          window.removeEventListener('message', handleMessage);
-          
-          // Store user and redirect to dashboard
-          localStorage.setItem('user', JSON.stringify(event.data.user));
-          console.log('💾 User stored, redirecting to dashboard');
-          window.location.href = '/kpi';
-        } else if (event.data.type === 'GOOGLE_LOGIN_ERROR') {
-          console.log('❌ Login error message received:', event.data.error);
-          popupClosed = true; // Prevent cancelled message
-          clearInterval(checkClosed);
-          popup?.close();
-          window.removeEventListener('message', handleMessage);
-          setIsLoading(false);
-          setError(`Login failed: ${event.data.error}`);
-        }
-      };
-
-      window.addEventListener('message', handleMessage);
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        if (!popup?.closed) {
-          popup?.close();
-          clearInterval(checkClosed);
-          window.removeEventListener('message', handleMessage);
-          setIsLoading(false);
-          setError('Login timed out. Please try again.');
-        }
-      }, 300000);
+      // Redirect to Google OAuth in same window (more reliable than popup)
+      window.location.href = '/api/auth/google/login';
 
     } catch (err) {
       console.error('Google login error:', err);

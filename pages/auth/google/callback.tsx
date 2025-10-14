@@ -33,44 +33,23 @@ export default function GoogleOAuthCallback() {
             
             console.log('✅ Login successful, sending message to parent:', { hasOpener: !!window.opener, isSheets });
             
-            // Send success to parent window or redirect
-            if (window.opener) {
-              window.opener.postMessage({ type: 'GOOGLE_LOGIN_SUCCESS', user: result.user }, window.location.origin);
-              console.log('📤 Message sent to parent window');
-              // Close popup after sending message
-              setTimeout(() => {
-                console.log('🔒 Closing popup window');
-                window.close();
-              }, 100);
+            // Always redirect to dashboard (same-window flow)
+            if (isSheets) {
+              // Redirect to KPI dashboard with success message for sheets
+              window.location.href = '/kpi?auth=success&source=sheets';
             } else {
-              if (isSheets) {
-                // Redirect to KPI dashboard with success message for sheets
-                window.location.href = '/kpi?auth=success&source=sheets';
-              } else {
-                // Regular login - redirect directly to dashboard
-                window.location.href = '/kpi?auth=success';
-              }
+              // Regular login - redirect directly to dashboard
+              window.location.href = '/kpi?auth=success';
             }
           } else {
             throw new Error(result.error || 'Authentication failed');
           }
         } else if (error) {
-          // Send the error to the parent window
-          if (window.opener) {
-            window.opener.postMessage({ type: 'GOOGLE_LOGIN_ERROR', error }, window.location.origin);
-            setTimeout(() => window.close(), 100);
-          } else {
-            // If no opener, redirect back to login with error
-            window.location.href = `/login?error=${encodeURIComponent(error)}`;
-          }
+          // Redirect back to login with error
+          window.location.href = `/login?error=${encodeURIComponent(error)}`;
         } else {
           // No code or error, redirect to login
-          if (window.opener) {
-            window.opener.postMessage({ type: 'GOOGLE_LOGIN_ERROR', error: 'No authorization code received' }, window.location.origin);
-            setTimeout(() => window.close(), 100);
-          } else {
-            window.location.href = '/login';
-          }
+          window.location.href = '/login';
         }
       } catch (err) {
         console.error('Auth callback error:', err);
