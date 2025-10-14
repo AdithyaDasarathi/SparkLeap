@@ -22,10 +22,15 @@ export default function LoginPage() {
     try {
       // Check if Google OAuth is configured
       const response = await fetch('/api/auth/google/check-config');
+      
+      if (!response.ok) {
+        throw new Error('Configuration check failed');
+      }
+      
       const config = await response.json();
       
       if (!config.configured) {
-        setError('Google login is not configured yet. Please use Guest mode or contact support.');
+        setError('Google login is not configured yet. Please use Guest mode to continue.');
         setIsLoading(false);
         return;
       }
@@ -33,7 +38,8 @@ export default function LoginPage() {
       // Redirect to Google OAuth
       window.location.href = '/api/auth/google/login';
     } catch (err) {
-      setError('Failed to initialize login. Please try again.');
+      console.error('Google login error:', err);
+      setError('Google login is not available. Please use Guest mode to continue.');
       setIsLoading(false);
     }
   };
@@ -173,19 +179,80 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Google Login Button */}
+        {/* Continue as Guest Button - Primary Option */}
         {!success && (
           <>
+            <button
+              onClick={handleGuestLogin}
+              style={{
+                width: '100%',
+                height: '48px',
+                background: 'linear-gradient(135deg, #f97316, #dc2626)',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#ffffff',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
+                marginBottom: '16px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(249, 115, 22, 0.45)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(249, 115, 22, 0.35)';
+              }}
+            >
+              {/* Guest Icon */}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+              Continue as Guest
+            </button>
+
+            {/* Divider */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              margin: '16px 0',
+              gap: '16px'
+            }}>
+              <div style={{
+                flex: 1,
+                height: '1px',
+                background: 'rgba(255, 255, 255, 0.1)'
+              }} />
+              <span style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                fontWeight: '500'
+              }}>or</span>
+              <div style={{
+                flex: 1,
+                height: '1px',
+                background: 'rgba(255, 255, 255, 0.1)'
+              }} />
+            </div>
+
+            {/* Google Login Button - Secondary Option */}
             <button
               onClick={handleGoogleLogin}
               disabled={isLoading}
               style={{
                 width: '100%',
                 height: '48px',
-                background: '#ffffff',
-                border: '1px solid rgba(0, 0, 0, 0.1)',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '8px',
-                color: '#1f2937',
+                color: '#ffffff',
                 fontSize: '16px',
                 fontWeight: '500',
                 cursor: isLoading ? 'not-allowed' : 'pointer',
@@ -194,20 +261,19 @@ export default function LoginPage() {
                 justifyContent: 'center',
                 gap: '8px',
                 transition: 'all 0.2s ease',
-                marginBottom: '16px'
+                marginBottom: '24px',
+                opacity: isLoading ? 0.6 : 1
               }}
               onMouseEnter={(e) => {
                 if (!isLoading) {
-                  e.currentTarget.style.background = '#f9fafb';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
                   e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isLoading) {
-                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
                 }
               }}
             >
@@ -232,67 +298,6 @@ export default function LoginPage() {
                   Continue with Google
                 </>
               )}
-            </button>
-
-            {/* Divider */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              margin: '24px 0',
-              gap: '16px'
-            }}>
-              <div style={{
-                flex: 1,
-                height: '1px',
-                background: 'rgba(255, 255, 255, 0.1)'
-              }} />
-              <span style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                fontWeight: '500'
-              }}>or</span>
-              <div style={{
-                flex: 1,
-                height: '1px',
-                background: 'rgba(255, 255, 255, 0.1)'
-              }} />
-            </div>
-
-            {/* Continue as Guest Button */}
-            <button
-              onClick={handleGuestLogin}
-              style={{
-                width: '100%',
-                height: '48px',
-                background: 'linear-gradient(135deg, #f97316, #dc2626)',
-                border: 'none',
-                borderRadius: '8px',
-                color: '#ffffff',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease',
-                boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
-                marginBottom: '24px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 12px 32px rgba(249, 115, 22, 0.45)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(249, 115, 22, 0.35)';
-              }}
-            >
-              {/* Guest Icon */}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-              </svg>
-              Continue as Guest
             </button>
           </>
         )}

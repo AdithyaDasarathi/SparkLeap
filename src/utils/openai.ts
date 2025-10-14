@@ -61,8 +61,8 @@ export async function callChatApi(messages: Message[]) {
       const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
       const baseUrl = process.env.NEXT_PUBLIC_OPENAI_API_BASE_URL || 'https://api.openai.com/v1';
 
-      if (!apiKey) {
-        console.error('OpenAI API key is missing');
+      if (!apiKey || apiKey === 'your_openai_api_key_here' || apiKey === 'placeholder-key') {
+        console.error('OpenAI API key is missing or invalid');
         return '• 🔧 **Demo Mode**: AI chat is not configured yet.\n• 💡 **To enable**: Add your OpenAI API key to environment variables.\n• 🎯 **For now**: You can still use all other features like tasks, calendar, and KPI tracking.\n• 📊 **Try asking**: "Show me my tasks" or "What are my KPIs?"';
       }
 
