@@ -23,23 +23,16 @@ export default function KPIPage() {
         setUser(userData);
         console.log('👤 KPI Page loaded for user:', userData.email || userData.name);
       } else {
-        // For development: create a demo user if no real user is found
-        console.log('⚠️ No user found in localStorage, creating demo user for development');
-        const demoUser = {
-          id: 'demo-user',
-          email: 'demo@sparkleap.com',
-          name: 'Demo User',
-          picture: null,
-          loginAt: new Date().toISOString()
-        };
-        setUser(demoUser);
-        localStorage.setItem('user', JSON.stringify(demoUser));
-        console.log('✅ Created demo user for development');
+        // No user found - redirect to login page
+        console.log('⚠️ No user found in localStorage, redirecting to login');
+        router.push('/login');
+        return;
       }
     } catch (error) {
       console.error('Error loading user:', error);
       // Redirect to login on error
       router.push('/login');
+      return;
     }
     setIsLoading(false);
   }, [router]);

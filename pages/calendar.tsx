@@ -17,6 +17,14 @@ export default function CalendarPage() {
     // Set client state immediately
     setIsClient(true);
     
+    // Check for user authentication first
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      console.log('⚠️ No user found in localStorage, redirecting to login');
+      window.location.href = '/login';
+      return;
+    }
+    
     // Load tasks from localStorage
     const saved = localStorage.getItem('tasks');
     if (saved) {

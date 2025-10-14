@@ -541,16 +541,49 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
             opacity: 1;
           }
         }
+        @media (max-width: 768px) {
+          .kpi-dashboard {
+            flex-direction: column !important;
+          }
+          .kpi-sidebar {
+            width: 100% !important;
+            height: auto !important;
+          }
+          .kpi-main {
+            flex: none !important;
+            height: auto !important;
+          }
+          .kpi-chat {
+            width: 100% !important;
+            height: 400px !important;
+            margin: 16px !important;
+          }
+          .kpi-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+            padding: 16px !important;
+          }
+        }
+        @media (max-width: 1024px) {
+          .kpi-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .kpi-chat {
+            width: 280px !important;
+          }
+        }
       `}</style>
-      <div style={{
+      <div className="kpi-dashboard" style={{
         display: 'flex',
-        height: '100vh',
+        minHeight: '100vh',
+        maxHeight: '100vh',
         background: '#1a1a1a',
         color: '#ffffff',
-        fontFamily: 'Inter, sans-serif'
+        fontFamily: 'Inter, sans-serif',
+        overflow: 'hidden'
       }}>
       {/* Left Sidebar */}
-      <div 
+      <div className="kpi-sidebar"
         style={{
           width: isSidebarOpen ? '240px' : '60px',
           background: 'rgba(18, 18, 18, 0.8)',
@@ -561,7 +594,9 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
           transition: 'width 0.3s ease',
           position: 'relative',
           overflow: 'hidden',
-          borderRight: '1px solid rgba(255, 255, 255, 0.1)'
+          borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+          minWidth: '60px',
+          flexShrink: 0
         }}
       >
         {/* Toggle Button */}
@@ -835,17 +870,18 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
       </div>
 
        {/* Main Content */}
-       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+       <div className="kpi-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* KPI Grid */}
-        <div style={{
+        <div className="kpi-grid" style={{
           flex: 1,
           padding: '24px',
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
           gap: '20px',
           overflow: 'auto',
-          background: '#1a1a1a'
+          background: '#1a1a1a',
+          minHeight: 0
         }}>
           {metrics.map((metric) => {
             const trend = trends[metric.key];
@@ -997,7 +1033,7 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
       </div>
 
       {/* Right Sidebar - AI Chat */}
-      <div style={{
+      <div className="kpi-chat" style={{
         width: '320px',
         background: 'rgba(32, 32, 32, 0.4)',
         backdropFilter: 'blur(20px)',
@@ -1008,7 +1044,9 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
         border: '1px solid rgba(255, 255, 255, 0.1)',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        flexShrink: 0,
+        maxHeight: 'calc(100vh - 48px)'
       }}>
         {/* AI Chat Header */}
         <div style={{

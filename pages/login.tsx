@@ -61,7 +61,10 @@ export default function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '24px'
+      padding: '24px',
+      background: 'linear-gradient(135deg, #0c0c0e, #1a1a1f)',
+      color: '#ffffff',
+      fontFamily: 'Inter, sans-serif'
     }}>
       {/* Login Card */}
       <div style={{
@@ -261,30 +264,28 @@ export default function LoginPage() {
               style={{
                 width: '100%',
                 height: '48px',
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03))',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                background: 'linear-gradient(135deg, #f97316, #dc2626)',
+                border: 'none',
                 borderRadius: '8px',
                 color: '#ffffff',
                 fontSize: '16px',
-                fontWeight: '500',
+                fontWeight: '600',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
                 transition: 'all 0.2s ease',
-                backdropFilter: 'blur(10px)',
+                boxShadow: '0 8px 24px rgba(249, 115, 22, 0.35)',
                 marginBottom: '24px'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06))';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 12px 32px rgba(249, 115, 22, 0.45)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03))';
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(249, 115, 22, 0.35)';
               }}
             >
               {/* Guest Icon */}

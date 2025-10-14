@@ -26,15 +26,10 @@ export default function TasksPage() {
             console.log('📋 Loaded tasks for user:', userData.email, '- Count:', data.tasks.length);
           }
         } else {
-          // Create demo user for development
-          const demoUser = {
-            id: 'demo-user',
-            email: 'demo@sparkleap.com',
-            name: 'Demo User',
-            picture: null
-          };
-          setUser(demoUser);
-          localStorage.setItem('user', JSON.stringify(demoUser));
+          // No user found - redirect to login page
+          console.log('⚠️ No user found in localStorage, redirecting to login');
+          window.location.href = '/login';
+          return;
         }
       } catch (error) {
         console.error('Error loading user and tasks:', error);

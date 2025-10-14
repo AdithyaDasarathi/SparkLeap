@@ -2,8 +2,17 @@ import HeroParallax from '@/components/HeroParallax';
 import Navigation from '@/components/Navigation';
 import WhatItDoesTabs from '@/components/WhatItDoesTabs';
 import KPIDashboardPreview from '@/components/KPIDashboardPreview';
+import { useEffect } from 'react';
 
 export default function Home() {
+  // Check if user is already logged in and redirect to dashboard
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      // User is logged in, redirect to dashboard
+      window.location.href = '/kpi';
+    }
+  }, []);
   return (
     <main style={{
       position: 'relative',
@@ -116,7 +125,8 @@ export default function Home() {
         <div style={{
           maxWidth: '1152px',
           margin: '0 auto',
-          animation: 'fadeIn 0.8s ease-out'
+          animation: 'fadeIn 0.8s ease-out',
+          width: '100%'
         }}>
           <div style={{
             display: 'inline-flex',
@@ -141,10 +151,12 @@ export default function Home() {
           </div>
           <h1 style={{
             marginTop: '24px',
-            fontSize: 'clamp(30px, 5vw, 60px)',
+            fontSize: 'clamp(24px, 4vw, 60px)',
             fontWeight: 400,
             lineHeight: '1.1',
-            color: '#ffffff'
+            color: '#ffffff',
+            wordWrap: 'break-word',
+            hyphens: 'auto'
           }}>
             The AI Cofounder That Turns Chaos Into Growth
           </h1>
@@ -152,8 +164,9 @@ export default function Home() {
             margin: '20px auto 0',
             maxWidth: '512px',
             color: 'rgba(255, 255, 255, 0.7)',
-            fontSize: '18px',
-            lineHeight: '1.6'
+            fontSize: 'clamp(16px, 2.5vw, 18px)',
+            lineHeight: '1.6',
+            wordWrap: 'break-word'
           }}>
             Centralize goals, automate execution, and watch your business move forward while you sleep.
           </p>
@@ -163,7 +176,10 @@ export default function Home() {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '12px'
+            gap: '12px',
+            width: '100%',
+            maxWidth: '400px',
+            margin: '32px auto 0'
           }}>
             <a href="/login" style={{
               display: 'inline-flex',

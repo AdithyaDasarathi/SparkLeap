@@ -37,17 +37,27 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage = 'home' }) => {
           borderRadius: '12px',
           padding: '10px 14px',
           boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
-          backdropFilter: 'blur(10px)'
+          backdropFilter: 'blur(10px)',
+          flexWrap: 'wrap',
+          gap: '12px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src="/sparkleap.png" alt="SparkLeap logo" width={24} height={24} style={{ display: 'block' }} />
             <span style={{ fontSize: '14px', fontWeight: 400, color: '#ffffff' }}>SparkLeap</span>
           </div>
-          <div style={{ display: 'flex', gap: '22px', margin: '0 auto', paddingLeft: 20, paddingRight: 20 }}>
-            <a href="#what-it-does" onClick={(e) => handleSmoothScroll(e, 'what-it-does')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer' }}>What It Does</a>
-            <a href="#why" onClick={(e) => handleSmoothScroll(e, 'why')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer' }}>Why SparkLeap</a>
-            <a href="#built" onClick={(e) => handleSmoothScroll(e, 'built')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer' }}>Built By</a>
-            <a href="#faqs" onClick={(e) => handleSmoothScroll(e, 'faqs')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer' }}>FAQ</a>
+          <div style={{ 
+            display: 'flex', 
+            gap: '22px', 
+            margin: '0 auto', 
+            paddingLeft: 20, 
+            paddingRight: 20,
+            flexWrap: 'wrap',
+            justifyContent: 'center'
+          }}>
+            <a href="#what-it-does" onClick={(e) => handleSmoothScroll(e, 'what-it-does')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>What It Does</a>
+            <a href="#why" onClick={(e) => handleSmoothScroll(e, 'why')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>Why SparkLeap</a>
+            <a href="#built" onClick={(e) => handleSmoothScroll(e, 'built')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>Built By</a>
+            <a href="#faqs" onClick={(e) => handleSmoothScroll(e, 'faqs')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>FAQ</a>
           </div>
           <div style={{ marginLeft: 'auto' }}>
             <Link href="/tasks" style={{
@@ -72,7 +82,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage = 'home' }) => {
       justifyContent: 'space-between',
       alignItems: 'center',
       backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      flexWrap: 'wrap',
+      gap: '16px'
     }}>
       <div style={{
         display: 'flex',
@@ -93,7 +105,9 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage = 'home' }) => {
       <nav style={{
         display: 'flex',
         gap: '24px',
-        alignItems: 'center'
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        justifyContent: 'center'
       }}>
         <a href="/" style={{
           padding: '8px 16px',

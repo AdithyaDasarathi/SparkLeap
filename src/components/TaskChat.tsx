@@ -146,14 +146,17 @@ const TaskChat = ({ onTaskCreate, onClearTasks, tasks }: TaskChatProps): ReactEl
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      minHeight: '600px',
-      background: 'transparent'
+      minHeight: '500px',
+      maxHeight: '80vh',
+      background: 'transparent',
+      overflow: 'hidden'
     }}>
       {/* Chat messages */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '0 0 20px 0'
+        padding: '0 0 20px 0',
+        minHeight: 0
       }}>
         <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 16px' }}>
           {messages.map((message, index) => (
