@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { supabase } from '../lib/supabase';
 
 interface AppHeaderProps {
   title?: string;
@@ -25,13 +26,22 @@ export default function AppHeader({ title = "SparkLeap", subtitle }: AppHeaderPr
     }
   }, []);
 
-  const handleLogout = () => {
-    // Clear all user data
-    localStorage.removeItem('user');
-    localStorage.removeItem('user-session-id');
-    
-    // Redirect to Supabase login
-    router.push('/login-supabase');
+  const handleLogout = async () => {
+    try {
+      // Sign out from Supabase first
+      await supabase.auth.signOut();
+      
+      // Clear all user data
+      localStorage.removeItem('user');
+      localStorage.removeItem('user-session-id');
+      
+      // Redirect to Supabase login
+      router.push('/login-supabase');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Still redirect even if there's an error
+      router.push('/login-supabase');
+    }
   };
 
   return (
