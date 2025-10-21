@@ -47,7 +47,7 @@ export default function KPIPage() {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut()
-      router.push('/login')
+      router.push('/login-supabase')
     } catch (error) {
       console.error('Error signing out:', error)
     }
