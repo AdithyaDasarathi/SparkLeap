@@ -12,7 +12,7 @@ export default function AuthCallback() {
         
         if (error) {
           console.error('Auth callback error:', error)
-          router.push('/login?error=auth_failed')
+          router.push('/login-supabase?error=auth_failed')
           return
         }
 
@@ -32,13 +32,13 @@ export default function AuthCallback() {
             console.error('Profile creation error:', profileError)
           }
 
-          router.push('/kpi')
+          router.push('/kpi-supabase')
         } else {
-          router.push('/login')
+          router.push('/login-supabase')
         }
       } catch (error) {
         console.error('Callback error:', error)
-        router.push('/login?error=callback_failed')
+        router.push('/login-supabase?error=callback_failed')
       }
     }
 
