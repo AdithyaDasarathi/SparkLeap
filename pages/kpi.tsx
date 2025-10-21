@@ -12,9 +12,42 @@ export default function KPIPage() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Process OAuth code directly
+  const processOAuthCode = async (code: string, state: string) => {
+    try {
+      console.log('🔄 Processing OAuth code directly...');
+      const response = await fetch('/api/auth/google/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      
+      const result = await response.json();
+      console.log('📡 OAuth exchange result:', result);
+      
+      if (result.success) {
+        // Store user info
+        localStorage.setItem('user', JSON.stringify(result.user));
+        sessionStorage.setItem('user', JSON.stringify(result.user));
+        console.log('💾 User stored from OAuth code');
+        
+        // Clean up URL and reload page
+        window.history.replaceState({}, '', '/kpi');
+        window.location.reload();
+      } else {
+        console.error('❌ OAuth exchange failed:', result);
+        router.push('/login?error=oauth_failed');
+      }
+    } catch (error) {
+      console.error('❌ OAuth processing error:', error);
+      router.push('/login?error=oauth_error');
+    }
+  };
+
   // Load user on mount
   useEffect(() => {
-    try {
+    const loadUser = async () => {
+      try {
       // Check localStorage first
       let userStr = localStorage.getItem('user');
       console.log('🔍 KPI Page - Checking localStorage:', !!userStr);
@@ -29,6 +62,8 @@ export default function KPIPage() {
       if (!userStr) {
         const urlParams = new URLSearchParams(window.location.search);
         const userParam = urlParams.get('user');
+        const code = urlParams.get('code');
+        
         if (userParam) {
           userStr = decodeURIComponent(userParam);
           console.log('🔍 KPI Page - Found user in URL params');
@@ -38,6 +73,11 @@ export default function KPIPage() {
           // Clean up URL
           const newUrl = window.location.pathname + (urlParams.get('auth') ? '?auth=success' : '');
           window.history.replaceState({}, '', newUrl);
+        } else if (code) {
+          // Handle OAuth code directly
+          console.log('🔍 KPI Page - Found OAuth code, processing...');
+          await processOAuthCode(code, urlParams.get('state') || '');
+          return; // processOAuthCode will handle the redirect
         }
       }
       
@@ -54,13 +94,16 @@ export default function KPIPage() {
         router.push('/login');
         return;
       }
-    } catch (error) {
-      console.error('❌ KPI Page - Error loading user:', error);
-      // Redirect to login on error
-      router.push('/login');
-      return;
-    }
-    setIsLoading(false);
+      } catch (error) {
+        console.error('❌ KPI Page - Error loading user:', error);
+        // Redirect to login on error
+        router.push('/login');
+        return;
+      }
+      setIsLoading(false);
+    };
+    
+    loadUser();
   }, [router]);
 
   // Callback to refresh the KPI dashboard

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../src/utils/database';
+import { SupabaseDatabaseService } from '../../../src/lib/supabase-database';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const tasks = await DatabaseService.getTasksByUser(userId);
+    const tasks = await SupabaseDatabaseService.getTasksByUser(userId);
     
     return NextResponse.json({
       success: true,
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const newTask = await DatabaseService.createTask({ ...task, userId });
+    const newTask = await SupabaseDatabaseService.createTask({ ...task, userId });
     
     return NextResponse.json({
       success: true,
@@ -61,7 +61,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    await DatabaseService.clearUserTasks(userId);
+    await SupabaseDatabaseService.clearUserTasks(userId);
     
     return NextResponse.json({
       success: true,

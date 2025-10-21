@@ -22,7 +22,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
     // Redirect to the callback page with the code
     const baseUrl = `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}`;
-    const callbackPageUrl = `${baseUrl}/auth/google/callback?code=${encodeURIComponent(code as string)}${state ? `&state=${encodeURIComponent(state as string)}` : ''}`;
+    const callbackPageUrl = `${baseUrl}/kpi?code=${encodeURIComponent(code as string)}${state ? `&state=${encodeURIComponent(state as string)}` : ''}`;
 
     console.log('🔗 Redirecting to callback page:', callbackPageUrl);
 

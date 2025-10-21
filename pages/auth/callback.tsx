@@ -1,0 +1,49 @@
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+import { supabase } from '../../src/lib/supabase'
+
+export default function AuthCallback() {
+  const router = useRouter()
+
+  useEffect(() => {
+    const handleAuthCallback = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('Auth callback error:', error)
+          router.push('/login?error=auth_failed')
+          return
+        }
+
+        if (data.session) {
+          // Create or update user profile
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: data.session.user.id,
+              email: data.session.user.email,
+              name: data.session.user.user_metadata?.full_name,
+              picture: data.session.user.user_metadata?.avatar_url,
+              updated_at: new Date().toISOString()
+            })
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError)
+          }
+
+          router.push('/kpi')
+        } else {
+          router.push('/login')
+        }
+      } catch (error) {
+        console.error('Callback error:', error)
+        router.push('/login?error=callback_failed')
+      }
+    }
+
+    handleAuthCallback()
+  }, [router])
+
+  return <div>Authenticating...</div>
+}

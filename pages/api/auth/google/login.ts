@@ -9,7 +9,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     // Check if Google OAuth credentials are configured
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${baseUrl}/auth/google/callback`;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${baseUrl}/kpi`;
 
     if (!clientId) {
       return res.status(500).json({ 

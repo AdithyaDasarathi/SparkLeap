@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../src/utils/database';
+import { SupabaseDatabaseService } from '../../../src/lib/supabase-database';
 import { KPIMetric } from '../../../src/types/kpi';
 
 export async function GET(request: NextRequest) {
@@ -15,16 +15,16 @@ export async function GET(request: NextRequest) {
 
     if (metricName) {
       // Get trend data for specific metric
-      let trends = await DatabaseService.getKPITrends(userId, metricName, days);
+      let trends = await SupabaseDatabaseService.getKPITrends(userId, metricName, days);
       
       // Only seed sample data if there's no real data at all (including Google Sheets)
-      const allKpis = await DatabaseService.getKPIsByUser(userId);
+      const allKpis = await SupabaseDatabaseService.getKPIsByUser(userId);
       const hasRealData = allKpis.some(kpi => kpi.source !== 'Manual');
       
       if (trends.length === 0 && !hasRealData) {
         console.log('📊 No real data found, seeding sample data...');
-        await DatabaseService.seedSampleData(userId);
-        trends = await DatabaseService.getKPITrends(userId, metricName, days);
+        await SupabaseDatabaseService.seedSampleData(userId);
+        trends = await SupabaseDatabaseService.getKPITrends(userId, metricName, days);
       } else if (trends.length === 0 && hasRealData) {
         console.log('📊 Real data exists but no trends for this metric, using latest value');
         // Get the latest value for this metric from any source
@@ -43,15 +43,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ trends });
     } else {
       // Get all KPIs for user
-      let kpis = await DatabaseService.getKPIsByUser(userId);
+      let kpis = await SupabaseDatabaseService.getKPIsByUser(userId);
       
       // Only seed sample data if there's no real data at all
       const hasRealData = kpis.some(kpi => kpi.source !== 'Manual');
       
       if (kpis.length === 0 && !hasRealData) {
         console.log('📊 No real data found, seeding sample data...');
-        await DatabaseService.seedSampleData(userId);
-        kpis = await DatabaseService.getKPIsByUser(userId);
+        await SupabaseDatabaseService.seedSampleData(userId);
+        kpis = await SupabaseDatabaseService.getKPIsByUser(userId);
       }
       
       return NextResponse.json({ kpis });
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const kpi = await DatabaseService.createKPI({
+    const kpi = await SupabaseDatabaseService.createKPI({
       userId,
       metricName,
       source,
@@ -122,7 +122,7 @@ export async function PUT(request: NextRequest) {
       updates.value = parseFloat(value);
     }
 
-    const kpi = await DatabaseService.updateKPI(id, updates);
+    const kpi = await SupabaseDatabaseService.updateKPI(id, updates);
     
     if (!kpi) {
       return NextResponse.json(
@@ -153,7 +153,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const success = await DatabaseService.deleteKPI(id);
+    const success = await SupabaseDatabaseService.deleteKPI(id);
     
     if (!success) {
       return NextResponse.json(
