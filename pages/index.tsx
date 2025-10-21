@@ -181,7 +181,7 @@ export default function Home() {
             maxWidth: '400px',
             margin: '32px auto 0'
           }}>
-            <a href="/login" style={{
+            <a href="/login-supabase" style={{
               display: 'inline-flex',
               height: '44px',
               alignItems: 'center',
@@ -446,7 +446,7 @@ export default function Home() {
             ))}
           </div>
           <div style={{ textAlign: 'center', marginTop: '32px' }}>
-            <a href="/tasks" style={{
+            <a href="/login-supabase" style={{
               display: 'inline-flex',
               height: '44px',
               alignItems: 'center',

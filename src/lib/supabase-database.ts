@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase, getSupabaseAdmin } from './supabase'
 import { KPI, DataSourceConfig, KPISyncJob, KPIInsight } from '../types/kpi'
 import { Task } from '../types/task'
 

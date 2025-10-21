@@ -60,7 +60,7 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage = 'home' }) => {
             <a href="#faqs" onClick={(e) => handleSmoothScroll(e, 'faqs')} style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', textDecoration: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>FAQ</a>
           </div>
           <div style={{ marginLeft: 'auto' }}>
-            <Link href="/tasks" style={{
+            <Link href="/login-supabase" style={{
               display: 'inline-flex', padding: '8px 14px', borderRadius: '8px',
               background: 'linear-gradient(135deg, #FF8669, #DA595D)', color: '#0b0b0d',
               fontSize: '12px', fontWeight: 600, textDecoration: 'none',
