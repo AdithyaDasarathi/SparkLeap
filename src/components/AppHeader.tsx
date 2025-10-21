@@ -30,8 +30,8 @@ export default function AppHeader({ title = "SparkLeap", subtitle }: AppHeaderPr
     localStorage.removeItem('user');
     localStorage.removeItem('user-session-id');
     
-    // Redirect to login
-    router.push('/login');
+    // Redirect to Supabase login
+    router.push('/login-supabase');
   };
 
   return (
