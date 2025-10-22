@@ -131,7 +131,8 @@ export class SupabaseDatabaseService {
   }
 
   static async updateDataSource(id: string, updates: Partial<DataSourceConfig>): Promise<DataSourceConfig | null> {
-    const { data, error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data, error } = await supabaseAdmin
       .from('data_sources')
       .update({
         ...updates,
@@ -146,7 +147,8 @@ export class SupabaseDatabaseService {
   }
 
   static async deleteDataSource(id: string): Promise<boolean> {
-    const { error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+    const { error } = await supabaseAdmin
       .from('data_sources')
       .delete()
       .eq('id', id)
