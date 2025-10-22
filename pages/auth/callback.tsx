@@ -32,7 +32,16 @@ export default function AuthCallback() {
             console.error('Profile creation error:', profileError)
           }
 
-          router.push('/kpi-supabase')
+          // Check if this is a Google Sheets authentication
+          const urlParams = new URLSearchParams(window.location.search)
+          const intent = urlParams.get('intent')
+          
+          if (intent === 'sheets') {
+            // Redirect back to KPI page with sheets intent
+            router.push('/kpi-supabase?intent=sheets')
+          } else {
+            router.push('/kpi-supabase')
+          }
         } else {
           router.push('/login-supabase')
         }

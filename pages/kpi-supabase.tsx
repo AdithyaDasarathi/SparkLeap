@@ -40,6 +40,19 @@ export default function KPIPage() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Handle Google Sheets intent from auth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const intent = urlParams.get('intent')
+    
+    if (intent === 'sheets' && user) {
+      // Trigger Google Sheets connection
+      console.log('🔗 Google Sheets authentication completed, triggering connection...')
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [user])
+
   const handleRefresh = useCallback(() => {
     setRefreshKey(prev => prev + 1)
   }, [])

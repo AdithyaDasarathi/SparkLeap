@@ -119,6 +119,8 @@ export default function TasksPage() {
         console.log('💾 Task saved to database:', data.task.id);
         // Fire-and-forget calendar sync
         syncTaskToCalendar(data.task);
+        // Notify other tabs that tasks have been updated
+        localStorage.setItem('tasks-updated', Date.now().toString());
       }
     } catch (error) {
       console.error('Error saving task:', error);
@@ -126,6 +128,8 @@ export default function TasksPage() {
       setTasks(prev => [...prev, task]);
       // Try to sync even for local fallback
       syncTaskToCalendar(task);
+      // Notify other tabs that tasks have been updated
+      localStorage.setItem('tasks-updated', Date.now().toString());
     }
   };
 

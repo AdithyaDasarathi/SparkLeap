@@ -56,22 +56,31 @@ export default function CalendarPage() {
   useEffect(() => {
     if (!user) return; // Wait for user to be loaded
     
-    // Load tasks from localStorage
-    const saved = localStorage.getItem('tasks');
-    if (saved) {
+    // Load tasks from database
+    const loadTasks = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        const parsedTasks = parsed.map((task: any) => ({
-          ...task,
-          dueDate: task.dueDate ? new Date(task.dueDate) : null,
-          createdAt: new Date(task.createdAt)
-        }));
-        setTasks(parsedTasks);
-      } catch (err) {
-        console.error('Error loading tasks:', err);
+        const response = await fetch(`/api/tasks?userId=${user.id}`);
+        const data = await response.json();
+        if (data.success) {
+          const parsedTasks = data.tasks.map((task: any) => ({
+            ...task,
+            dueDate: task.dueDate ? new Date(task.dueDate) : null,
+            createdAt: new Date(task.createdAt)
+          }));
+          setTasks(parsedTasks);
+          console.log('📅 Loaded tasks for calendar:', user.email, '- Count:', parsedTasks.length);
+        } else {
+          console.log('⚠️ No tasks found or API error, starting with empty tasks');
+          setTasks([]);
+        }
+      } catch (error) {
+        console.log('⚠️ API error loading tasks for calendar, starting with empty tasks:', error);
+        setTasks([]);
       }
-    }
-  }, []);
+    };
+
+    loadTasks();
+  }, [user]);
 
   // Fallback timeout to prevent infinite loading
   useEffect(() => {
@@ -85,11 +94,38 @@ export default function CalendarPage() {
     return () => clearTimeout(timeout);
   }, [isClient]);
 
-  useEffect(() => {
-    if (isClient) {
-      localStorage.setItem('tasks', JSON.stringify(tasks));
+  // Add a refresh function to reload tasks from database
+  const refreshTasks = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/tasks?userId=${user.id}`);
+      const data = await response.json();
+      if (data.success) {
+        const parsedTasks = data.tasks.map((task: any) => ({
+          ...task,
+          dueDate: task.dueDate ? new Date(task.dueDate) : null,
+          createdAt: new Date(task.createdAt)
+        }));
+        setTasks(parsedTasks);
+        console.log('🔄 Refreshed tasks for calendar:', parsedTasks.length);
+      }
+    } catch (error) {
+      console.error('Error refreshing tasks:', error);
     }
-  }, [tasks, isClient]);
+  };
+
+  // Listen for storage events to sync between tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'tasks-updated') {
+        refreshTasks();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [user]);
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -225,11 +261,21 @@ export default function CalendarPage() {
         padding: '40px 24px'
       }}>
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Calendar View</h1>
-          <p className="text-white/60 text-lg">
-            View your tasks in a calendar format. Click on any task to see details.
-          </p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">Calendar View</h1>
+            <p className="text-white/60 text-lg">
+              View your tasks in a calendar format. Click on any task to see details.
+            </p>
+          </div>
+          <button
+            onClick={refreshTasks}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+            title="Refresh tasks from database"
+          >
+            <span>🔄</span>
+            Refresh
+          </button>
         </div>
 
         {/* Google Calendar Sync */}
