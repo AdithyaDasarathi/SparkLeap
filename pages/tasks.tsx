@@ -3,41 +3,56 @@ import { useState, useEffect } from 'react';
 import { Task } from '@/types/task';
 import TaskChat from '@/components/TaskChat';
 import AppHeader from '@/components/AppHeader';
+import { supabase } from '../src/lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load user and their tasks from database
-    const loadUserAndTasks = async () => {
+    // Get current user from Supabase
+    const getUser = async () => {
       try {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          const userData = JSON.parse(userStr);
-          setUser(userData);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUser(user);
           
           // Load user-specific tasks from database
-          const response = await fetch(`/api/tasks?userId=${userData.id || userData.email}`);
+          const response = await fetch(`/api/tasks?userId=${user.id}`);
           const data = await response.json();
           if (data.success) {
             setTasks(data.tasks);
-            console.log('📋 Loaded tasks for user:', userData.email, '- Count:', data.tasks.length);
+            console.log('📋 Loaded tasks for user:', user.email, '- Count:', data.tasks.length);
           }
         } else {
           // No user found - redirect to Supabase login page
-          console.log('⚠️ No user found in localStorage, redirecting to Supabase login');
+          console.log('⚠️ No user found in Supabase, redirecting to Supabase login');
           window.location.href = '/login-supabase';
           return;
         }
       } catch (error) {
         console.error('Error loading user and tasks:', error);
+        window.location.href = '/login-supabase';
       }
       setIsLoading(false);
     };
 
-    loadUserAndTasks();
+    getUser();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          setUser(session.user);
+        } else {
+          window.location.href = '/login-supabase';
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const syncTaskToCalendar = async (task: Task) => {

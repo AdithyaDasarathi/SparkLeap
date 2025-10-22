@@ -6,24 +6,55 @@ import CalendarView from '@/components/CalendarView';
 import TaskList from '@/components/TaskList';
 import GoogleCalendarSync from '@/components/GoogleCalendarSync';
 import Navigation from '@/components/Navigation';
+import { supabase } from '../src/lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 export default function CalendarPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetails, setShowTaskDetails] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     // Set client state immediately
     setIsClient(true);
     
-    // Check for user authentication first
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      console.log('⚠️ No user found in localStorage, redirecting to Supabase login');
-      window.location.href = '/login-supabase';
-      return;
-    }
+    // Get current user from Supabase
+    const getUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUser(user);
+        } else {
+          console.log('⚠️ No user found in Supabase, redirecting to Supabase login');
+          window.location.href = '/login-supabase';
+          return;
+        }
+      } catch (error) {
+        console.error('Error getting user:', error);
+        window.location.href = '/login-supabase';
+      }
+    };
+
+    getUser();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          setUser(session.user);
+        } else {
+          window.location.href = '/login-supabase';
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return; // Wait for user to be loaded
     
     // Load tasks from localStorage
     const saved = localStorage.getItem('tasks');
