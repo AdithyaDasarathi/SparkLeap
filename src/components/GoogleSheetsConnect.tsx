@@ -38,6 +38,8 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
   const [spreadsheetInfo, setSpreadsheetInfo] = useState<SpreadsheetInfo | null>(null);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [authInProgress, setAuthInProgress] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
 
   // Get current user from Supabase
   const [user, setUser] = useState<User | null>(null);
@@ -273,52 +275,80 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     const urlParams = new URLSearchParams(window.location.search);
     const intent = urlParams.get('intent');
     
-    if (intent === 'sheets' && user) {
-      // User is authenticated via Supabase, create data source
-      console.log('🔗 Google Sheets authentication completed, creating data source...');
-      
-      const createDataSource = async () => {
-        try {
-          const creds = {
-            accessToken: 'supabase-oauth-token', // In real implementation, get from Supabase session
-            refreshToken: 'supabase-refresh-token', // In real implementation, get from Supabase session
-            expiryDate: Date.now() + 3600000, // 1 hour from now
-          };
-          
-          // Create data source with the credentials
-          const response = await fetch('/api/datasources', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: getUserId(),
-              source: 'GoogleSheets',
-              credentials: creds,
-              syncFrequency: 'daily'
-            })
-          });
+         if (intent === 'sheets' && user) {
+           // User is authenticated via Supabase, create data source
+           console.log('🔗 Google Sheets authentication completed, creating data source...');
+           
+           const createDataSource = async () => {
+             try {
+               // Get the current Supabase session to extract OAuth tokens
+               const { data: { session } } = await supabase.auth.getSession();
+               
+               if (!session) {
+                 console.error('❌ No session found after OAuth');
+                 setMessage('❌ Authentication failed - no session found');
+                 return;
+               }
 
-          if (response.ok) {
-            const data = await response.json();
-            console.log('✅ Google Sheets data source created:', data.dataSource);
-            setIsConnected(true);
-            setSourceId(data.dataSource.id);
-            setMessage('✅ Successfully connected to Google Sheets!');
-          } else {
-            const errorData = await response.json();
-            console.error('❌ Failed to create data source:', errorData);
-            setMessage(`❌ Failed to create data source: ${errorData.error}`);
-          }
-          
-          // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch (error) {
-          console.error('❌ Error creating data source:', error);
-          setMessage(`Failed to process authentication: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-      };
-      
-      createDataSource();
+               const creds = {
+                 accessToken: session.provider_token || 'supabase-oauth-token',
+                 refreshToken: session.provider_refresh_token || 'supabase-refresh-token',
+                 expiryDate: session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000,
+                 spreadsheetId: spreadsheetId || '1L-nkZI9_Xjtr027vS2gI8D_-YxlyalOb5kd7gvRCSOM', // Use the spreadsheet ID from the input
+                 range: dataRange || 'A1:E13'
+               };
+               
+               console.log('🔑 Creating data source with credentials:', {
+                 hasAccessToken: !!creds.accessToken,
+                 hasRefreshToken: !!creds.refreshToken,
+                 spreadsheetId: creds.spreadsheetId,
+                 range: creds.range
+               });
+               
+               // Create data source with the credentials
+               const response = await fetch('/api/datasources', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({
+                   userId: getUserId(),
+                   source: 'GoogleSheets',
+                   credentials: creds,
+                   syncFrequency: 'daily',
+                   config: {
+                     spreadsheetId: creds.spreadsheetId,
+                     range: creds.range
+                   }
+                 })
+               });
+
+               if (response.ok) {
+                 const data = await response.json();
+                 console.log('✅ Google Sheets data source created:', data.dataSource);
+                 setIsConnected(true);
+                 setSourceId(data.dataSource.id);
+                 setMessage('✅ Successfully connected to Google Sheets! You can now sync data.');
+                 
+                 // Automatically trigger a sync after connection
+                 setTimeout(() => {
+                   console.log('🔄 Auto-triggering sync after connection...');
+                   handleSync();
+                 }, 2000);
+               } else {
+                 const errorData = await response.json();
+                 console.error('❌ Failed to create data source:', errorData);
+                 setMessage(`❌ Failed to create data source: ${errorData.error}`);
+               }
+               
+               // Clean up URL
+               window.history.replaceState({}, document.title, window.location.pathname);
+             } catch (error) {
+               console.error('❌ Error creating data source:', error);
+               setMessage(`Failed to process authentication: ${error instanceof Error ? error.message : 'Unknown error'}`);
+               window.history.replaceState({}, document.title, window.location.pathname);
+             }
+           };
+           
+           createDataSource();
     } else {
       checkConnection();
     }
@@ -331,6 +361,22 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     
     return () => clearTimeout(timeoutId);
   }, [user]);
+
+  // Auto-sync feature
+  useEffect(() => {
+    if (!autoSyncEnabled || !sourceId || !user) return;
+
+    console.log('🔄 Auto-sync enabled, setting up interval...');
+    const interval = setInterval(() => {
+      console.log('⏰ Auto-sync triggered');
+      handleSync();
+    }, 5 * 60 * 1000); // Sync every 5 minutes
+
+    return () => {
+      console.log('🛑 Auto-sync disabled');
+      clearInterval(interval);
+    };
+  }, [autoSyncEnabled, sourceId, user]);
 
   const fetchSpreadsheetInfo = async (id: string) => {
     // This would fetch spreadsheet metadata if needed
@@ -438,10 +484,12 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
       console.log('📊 Sync response:', data);
       
       if (res.ok && data.success) {
-        setMessage(`✅ Sync completed! ${data.metricsSynced} metrics processed. Check console for details.`);
+        setLastSyncTime(new Date());
+        setMessage(`✅ Sync completed! ${data.metricsSynced} metrics processed. Graphs have been updated!`);
         
         // Notify parent component to refresh dashboard
         if (onDataGenerated) {
+          console.log('🔄 Refreshing dashboard after successful sync...');
           onDataGenerated();
         }
       } else {
@@ -857,12 +905,21 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
                 marginBottom: '8px'
               }}>Spreadsheet: {spreadsheetInfo.title}</p>
             )}
+            {lastSyncTime && (
+              <p style={{
+                fontSize: '13px',
+                color: '#6ee7b7',
+                margin: '0 0 8px 0'
+              }}>
+                🕒 <strong>Last sync:</strong> {lastSyncTime.toLocaleString()}
+              </p>
+            )}
             <p style={{
               fontSize: '13px',
               color: '#6ee7b7',
               margin: 0
             }}>
-              💡 <strong>Tip:</strong> After syncing data, click "Generate Trends" to create historical data points for beautiful KPI graphs!
+              💡 <strong>Tip:</strong> Data syncs automatically to update your KPI graphs in real-time!
             </p>
           </div>
 
@@ -928,6 +985,30 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
               }}
             >
               Verify Sync
+            </button>
+            <button
+              onClick={() => setAutoSyncEnabled(!autoSyncEnabled)}
+              style={{
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                background: autoSyncEnabled ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                color: autoSyncEnabled ? '#4ade80' : '#ffffff',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = autoSyncEnabled ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = autoSyncEnabled ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+              }}
+            >
+              {autoSyncEnabled ? '🔄 Auto-Sync ON' : '⏸️ Auto-Sync OFF'}
             </button>
             <button
               onClick={handleGenerateHistoricalData}

@@ -104,13 +104,30 @@ export class SupabaseDatabaseService {
   }
 
   static async getDataSourcesByUser(userId: string): Promise<DataSourceConfig[]> {
-    const { data, error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data, error } = await supabaseAdmin
       .from('data_sources')
       .select('*')
       .eq('user_id', userId)
+      .order('created_at', { ascending: false })
 
     if (error) throw error
     return data || []
+  }
+
+  static async getDataSourceById(id: string): Promise<DataSourceConfig | null> {
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data, error } = await supabaseAdmin
+      .from('data_sources')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') return null // No rows returned
+      throw error
+    }
+    return data
   }
 
   static async updateDataSource(id: string, updates: Partial<DataSourceConfig>): Promise<DataSourceConfig | null> {
