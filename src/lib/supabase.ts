@@ -17,7 +17,7 @@ export const getSupabaseAdmin = () => {
   if (typeof window !== 'undefined') {
     throw new Error('supabaseAdmin can only be used on the server side')
   }
-  
+
   return createClient(
     supabaseUrl,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -25,6 +25,11 @@ export const getSupabaseAdmin = () => {
       auth: {
         autoRefreshToken: false,
         persistSession: false
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`
+        }
       }
     }
   )

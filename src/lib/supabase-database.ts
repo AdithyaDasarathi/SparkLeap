@@ -5,7 +5,8 @@ import { Task } from '../types/task'
 export class SupabaseDatabaseService {
   // KPI Operations
   static async createKPI(kpi: Omit<KPI, 'id'>): Promise<KPI> {
-    const { data, error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data, error } = await supabaseAdmin
       .from('kpis')
       .insert({
         user_id: kpi.userId,
@@ -37,7 +38,8 @@ export class SupabaseDatabaseService {
   }
 
   static async getKPIsByUser(userId: string): Promise<KPI[]> {
-    const { data, error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data, error } = await supabaseAdmin
       .from('kpis')
       .select('*')
       .eq('user_id', userId)
@@ -380,16 +382,23 @@ export class SupabaseDatabaseService {
 
       for (const metric of metrics) {
         const value = sampleData[metric as keyof typeof sampleData]
-        await this.createKPI({
-          userId,
-          metricName: metric as any,
-          source: 'Manual',
-          value: Math.max(0, value),
-          timestamp: date,
-          lastSyncedAt: date,
-          isManualOverride: false,
-          status: 'active'
-        })
+        const supabaseAdmin = getSupabaseAdmin()
+        const { error } = await supabaseAdmin
+          .from('kpis')
+          .insert({
+            user_id: userId,
+            metric_name: metric,
+            source: 'Manual',
+            value: Math.max(0, value),
+            timestamp: date,
+            last_synced_at: date,
+            is_manual_override: false,
+            status: 'active'
+          })
+        
+        if (error) {
+          console.error(`Error seeding ${metric}:`, error)
+        }
       }
     }
   }
