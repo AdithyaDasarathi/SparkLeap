@@ -135,6 +135,17 @@ export class SupabaseDatabaseService {
     return !error
   }
 
+  // Utility methods
+  static encryptCredentials(credentials: any): string {
+    // Simple base64 encoding for now - in production, use proper encryption
+    return Buffer.from(JSON.stringify(credentials)).toString('base64')
+  }
+
+  static decryptCredentials(encryptedCredentials: string): any {
+    // Simple base64 decoding for now - in production, use proper decryption
+    return JSON.parse(Buffer.from(encryptedCredentials, 'base64').toString())
+  }
+
   // Sync Job Operations
   static async createSyncJob(job: Omit<KPISyncJob, 'id'>): Promise<KPISyncJob> {
     const { data, error } = await supabase

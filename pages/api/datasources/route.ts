@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../src/utils/database';
+import { SupabaseDatabaseService } from '../../../src/lib/supabase-database';
 import { DataSource, SyncFrequency } from '../../../src/types/kpi';
 
 export async function GET(request: NextRequest) {
@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    const dataSources = await DatabaseService.getDataSourcesByUser(userId);
-    const syncStatus = await DatabaseService.getSyncStatus(userId);
+    const dataSources = await SupabaseDatabaseService.getDataSourcesByUser(userId);
+    const syncStatus = await SupabaseDatabaseService.getSyncStatus(userId);
 
     return NextResponse.json({ dataSources, syncStatus });
   } catch (error) {
@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Encrypt credentials before storing
-    const encryptedCredentials = DatabaseService.encryptCredentials(credentials);
+    const encryptedCredentials = SupabaseDatabaseService.encryptCredentials(credentials);
 
-    const dataSource = await DatabaseService.createDataSource({
+    const dataSource = await SupabaseDatabaseService.createDataSource({
       userId,
       source: source as DataSource,
       isActive: true,
@@ -74,10 +74,10 @@ export async function PUT(request: NextRequest) {
     if (isActive !== undefined) updates.isActive = isActive;
     if (syncFrequency) updates.syncFrequency = syncFrequency;
     if (credentials) {
-      updates.credentials = DatabaseService.encryptCredentials(credentials);
+      updates.credentials = SupabaseDatabaseService.encryptCredentials(credentials);
     }
 
-    const dataSource = await DatabaseService.updateDataSource(id, updates);
+    const dataSource = await SupabaseDatabaseService.updateDataSource(id, updates);
     
     if (!dataSource) {
       return NextResponse.json(
@@ -108,7 +108,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const success = await DatabaseService.deleteDataSource(id);
+    const success = await SupabaseDatabaseService.deleteDataSource(id);
     
     if (!success) {
       return NextResponse.json(
