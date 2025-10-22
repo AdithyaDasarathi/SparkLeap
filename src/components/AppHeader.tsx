@@ -113,7 +113,7 @@ export default function AppHeader({ title = "SparkLeap", subtitle }: AppHeaderPr
         
         {/* Navigation Buttons */}
         <button
-          onClick={() => router.push('/kpi')}
+          onClick={() => router.push('/kpi-supabase')}
           style={{
             padding: '6px 12px',
             background: 'rgba(59, 130, 246, 0.8)',

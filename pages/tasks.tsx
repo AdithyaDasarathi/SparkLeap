@@ -26,9 +26,9 @@ export default function TasksPage() {
             console.log('📋 Loaded tasks for user:', userData.email, '- Count:', data.tasks.length);
           }
         } else {
-          // No user found - redirect to login page
-          console.log('⚠️ No user found in localStorage, redirecting to login');
-          window.location.href = '/login';
+          // No user found - redirect to Supabase login page
+          console.log('⚠️ No user found in localStorage, redirecting to Supabase login');
+          window.location.href = '/login-supabase';
           return;
         }
       } catch (error) {

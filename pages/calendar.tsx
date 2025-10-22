@@ -20,8 +20,8 @@ export default function CalendarPage() {
     // Check for user authentication first
     const userStr = localStorage.getItem('user');
     if (!userStr) {
-      console.log('⚠️ No user found in localStorage, redirecting to login');
-      window.location.href = '/login';
+      console.log('⚠️ No user found in localStorage, redirecting to Supabase login');
+      window.location.href = '/login-supabase';
       return;
     }
     
