@@ -19,13 +19,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return acc;
       }, {} as Record<string, number>);
 
-      // For now, just return basic sync status
+      // Filter KPIs by source and time range
+      const hours = parseInt(req.query.hours as string) || 24;
+      const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
+      
+      const recentKpis = kpis.filter(kpi => 
+        kpi.source === (req.query.source as string || 'GoogleSheets') &&
+        new Date(kpi.timestamp) >= cutoffTime
+      );
+
+      // Format the response to match what the component expects
       return res.status(200).json({
         success: true,
-        totalKpis: kpis.length,
-        sourceCounts,
-        hasGoogleSheets: sourceCounts['GoogleSheets'] > 0,
-        lastSyncTime: new Date().toISOString()
+        verification: {
+          totalKpis: kpis.length,
+          sourceCounts,
+          hasGoogleSheets: sourceCounts['GoogleSheets'] > 0,
+          lastSyncTime: new Date().toISOString(),
+          latestSyncedMetrics: recentKpis.map(kpi => ({
+            metricName: kpi.metricName,
+            value: kpi.value,
+            timestamp: kpi.timestamp,
+            source: kpi.source
+          }))
+        }
       });
     } catch (error) {
       console.error('Error verifying sync:', error);
