@@ -216,6 +216,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
       
       setMessage(`✅ Successfully imported ${kpiMetrics.length} KPI metrics from Google Sheets!`);
       setIsConnected(true);
+      // Note: sourceId should be set when creating the data source, not here
       
       // Notify parent component
       if (onDataGenerated) {
@@ -828,7 +829,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
             </ol>
           </div>
         </div>
-      ) : (
+      ) : isConnected && sourceId ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{
             background: 'rgba(34, 197, 94, 0.1)',
@@ -984,6 +985,22 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
             >
               Disconnect
             </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            borderRadius: '12px',
+            padding: '16px'
+          }}>
+            <h3 style={{
+              fontWeight: '600',
+              color: '#f87171',
+              marginBottom: '12px',
+              fontSize: '16px'
+            }}>❌ No data source connected. Please connect Google Sheets first.</h3>
           </div>
         </div>
       )}
