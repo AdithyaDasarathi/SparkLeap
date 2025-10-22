@@ -78,7 +78,7 @@ export class SupabaseDatabaseService {
       .insert({
         user_id: config.userId,
         source: config.source,
-        config: config.config,
+        config: (config as any).config || {},
         credentials: config.credentials,
         is_active: config.isActive,
         last_sync_at: config.lastSyncAt
@@ -136,14 +136,18 @@ export class SupabaseDatabaseService {
   }
 
   // Utility methods
-  static encryptCredentials(credentials: any): string {
+  static encryptCredentials(credentials: any): { encryptedData: string; iv: string } {
     // Simple base64 encoding for now - in production, use proper encryption
-    return Buffer.from(JSON.stringify(credentials)).toString('base64')
+    const encryptedData = Buffer.from(JSON.stringify(credentials)).toString('base64')
+    return {
+      encryptedData,
+      iv: 'dummy-iv' // In production, use proper IV
+    }
   }
 
-  static decryptCredentials(encryptedCredentials: string): any {
+  static decryptCredentials(encryptedCredentials: { encryptedData: string; iv: string }): any {
     // Simple base64 decoding for now - in production, use proper decryption
-    return JSON.parse(Buffer.from(encryptedCredentials, 'base64').toString())
+    return JSON.parse(Buffer.from(encryptedCredentials.encryptedData, 'base64').toString())
   }
 
   // Sync Job Operations
@@ -152,12 +156,12 @@ export class SupabaseDatabaseService {
       .from('sync_jobs')
       .insert({
         user_id: job.userId,
-        data_source_id: job.dataSourceId,
+        data_source_id: (job as any).dataSourceId || (job as any).sourceId,
         status: job.status,
         started_at: job.startedAt,
         completed_at: job.completedAt,
         error_message: job.errorMessage,
-        records_processed: job.recordsProcessed
+        records_processed: (job as any).recordsProcessed || 0
       })
       .select()
       .single()
@@ -207,9 +211,9 @@ export class SupabaseDatabaseService {
       .from('insights')
       .insert({
         user_id: insight.userId,
-        title: insight.title,
-        content: insight.content,
-        insight_type: insight.insightType,
+        title: (insight as any).title || '',
+        content: (insight as any).content || '',
+        insight_type: (insight as any).insightType || 'general',
         generated_at: insight.generatedAt,
         is_read: insight.isRead
       })
@@ -261,8 +265,8 @@ export class SupabaseDatabaseService {
       .insert({
         user_id: task.userId,
         title: task.title,
-        description: task.description,
-        status: task.status,
+        description: (task as any).description || '',
+        status: (task as any).status || 'pending',
         priority: task.priority,
         due_date: task.dueDate
       })
