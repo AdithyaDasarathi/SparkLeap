@@ -19,6 +19,7 @@ export default function KPIPage() {
     const getUser = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
+        console.log('🔍 KPI Page - User from getUser:', user?.email || 'No user')
         setUser(user)
         setIsLoading(false)
       } catch (error) {
@@ -32,6 +33,7 @@ export default function KPIPage() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('🔍 KPI Page - Auth state change:', event, session?.user?.email || 'No user')
         setUser(session?.user ?? null)
         setIsLoading(false)
       }

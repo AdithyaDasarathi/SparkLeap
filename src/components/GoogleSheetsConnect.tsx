@@ -67,7 +67,9 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
 
   // Get current user ID from Supabase
   const getUserId = () => {
-    return user?.id || user?.email || 'demo-user';
+    const userId = user?.id || user?.email || 'demo-user';
+    console.log('🔍 GoogleSheetsConnect - getUserId:', userId, 'User:', user?.email || 'No user');
+    return userId;
   };
 
   // Extract spreadsheet ID from Google Sheets URL
