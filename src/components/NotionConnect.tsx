@@ -28,11 +28,25 @@ export default function NotionConnect() {
   const [newDatabaseId, setNewDatabaseId] = useState('');
   const [isUpdatingDatabase, setIsUpdatingDatabase] = useState(false);
 
+  // Get current user ID (placeholder for now)
+  const getUserId = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return user.id || user.email || 'demo-user';
+      }
+      return 'demo-user';
+    } catch {
+      return 'demo-user';
+    }
+  };
+
   // Check if Notion is already connected
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const res = await fetch('/api/datasources?userId=demo-user');
+        const res = await fetch(`/api/datasources?userId=${getUserId()}`);
         if (res.ok) {
           const data = await res.json();
           const notionSource = data.dataSources?.find((ds: any) => ds.source === 'Notion');
@@ -122,10 +136,10 @@ export default function NotionConnect() {
     try {
       console.log('🔄 Starting Notion sync...');
       console.log(`   - Source ID: ${sourceId}`);
-      console.log(`   - User ID: demo-user`);
+      console.log(`   - User ID: ${getUserId()}`);
       
       // First, let's debug what data sources exist
-      const debugRes = await fetch('/api/debug?userId=demo-user');
+      const debugRes = await fetch(`/api/debug?userId=${getUserId()}`);
       if (debugRes.ok) {
         const debugData = await debugRes.json();
         console.log('🔍 Debug info:', debugData);
@@ -147,7 +161,7 @@ export default function NotionConnect() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'demo-user',
+          userId: getUserId(),
           sourceId,
           action: 'sync'
         })

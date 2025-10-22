@@ -16,6 +16,7 @@ import { processTaskInput } from '../utils/taskProcessor';
 import type { Message } from '../types/message';
 import type { Task } from '../types/task';
 import { useRouter } from 'next/router';
+import { supabase } from '../lib/supabase';
 
 interface KPIDashboardProps {
   userId: string;
@@ -75,48 +76,32 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
   };
 
   useEffect(() => {
-    // Load user from localStorage
-    const loadUser = () => {
+    // Load user from Supabase
+    const loadUser = async () => {
       try {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          const userData = JSON.parse(userStr);
-          setUser(userData);
-          console.log('👤 Loaded user:', userData.email);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUser(user);
+          console.log('👤 Loaded user from Supabase:', user.email);
           
           // Fetch KPIs for the specific user
-          fetchKPIs(userData.id || userData.email);
+          fetchKPIs(user.id);
           
           // Load user-specific tasks
-          loadUserTasks(userData.id || userData.email);
+          loadUserTasks(user.id);
           
           // Initialize chat with personalized welcome message
           setChatMessages([{
             role: 'assistant',
-            content: `Welcome back, ${userData.name}! Feel free to ask me anything about your current metrics. How can I help?`
+            content: `Welcome back, ${user.user_metadata?.full_name || user.email}! Feel free to ask me anything about your current metrics. How can I help?`
           }]);
         } else {
-          // No user found, create demo user for development
-          console.log('⚠️ No user found in KPIDashboard, creating demo user');
-          const demoUser = {
-            id: 'demo-user',
-            email: 'demo@sparkleap.com',
-            name: 'Demo User',
-            picture: null
-          };
-          setUser(demoUser);
-          fetchKPIs(demoUser.id);
-          loadUserTasks(demoUser.id);
-          
-          // Initialize chat with welcome message
-          setChatMessages([{
-            role: 'assistant',
-            content: 'Welcome back! Feel free to ask me anything about your current metrics. How can I help?'
-          }]);
+          console.log('⚠️ No user found in KPIDashboard, redirecting to login');
+          router.push('/login-supabase');
         }
       } catch (error) {
         console.error('Error loading user:', error);
-        router.push('/login');
+        router.push('/login-supabase');
       }
     };
 
