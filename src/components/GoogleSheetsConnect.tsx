@@ -215,8 +215,8 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
       await Promise.all(createPromises);
       
       setMessage(`✅ Successfully imported ${kpiMetrics.length} KPI metrics from Google Sheets!`);
-      setIsConnected(true);
-      // Note: sourceId should be set when creating the data source, not here
+      // Don't set isConnected=true here since we don't have a sourceId
+      // The CSV import creates KPIs directly, not a data source
       
       // Notify parent component
       if (onDataGenerated) {
