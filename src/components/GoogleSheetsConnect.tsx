@@ -232,6 +232,12 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
 
   // Check if Google Sheets is already connected and handle OAuth callback
   useEffect(() => {
+    // Only check connection if user is authenticated
+    if (!user) {
+      console.log('🔍 GoogleSheetsConnect - No user yet, waiting for authentication...');
+      return;
+    }
+
     const checkConnection = async () => {
       try {
         const currentUserId = getUserId();
@@ -293,7 +299,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     }, 1000);
     
     return () => clearTimeout(timeoutId);
-  }, []);
+  }, [user]);
 
   const fetchSpreadsheetInfo = async (id: string) => {
     // This would fetch spreadsheet metadata if needed
