@@ -274,17 +274,42 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     
     if (intent === 'sheets' && user) {
       // User is authenticated via Supabase, create data source
+      console.log('🔗 Google Sheets authentication completed, creating data source...');
       try {
         const creds = {
           accessToken: 'supabase-oauth-token', // In real implementation, get from Supabase session
           refreshToken: 'supabase-refresh-token', // In real implementation, get from Supabase session
           expiryDate: Date.now() + 3600000, // 1 hour from now
         };
+        
         // Create data source with the credentials
-        createDataSource(creds);
+        const response = await fetch('/api/datasources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: getUserId(),
+            source: 'GoogleSheets',
+            credentials: creds,
+            syncFrequency: 'daily'
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Google Sheets data source created:', data.dataSource);
+          setIsConnected(true);
+          setSourceId(data.dataSource.id);
+          setMessage('✅ Successfully connected to Google Sheets!');
+        } else {
+          const errorData = await response.json();
+          console.error('❌ Failed to create data source:', errorData);
+          setMessage(`❌ Failed to create data source: ${errorData.error}`);
+        }
+        
         // Clean up URL
         window.history.replaceState({}, document.title, window.location.pathname);
       } catch (error) {
+        console.error('❌ Error creating data source:', error);
         setMessage(`Failed to process authentication: ${error instanceof Error ? error.message : 'Unknown error'}`);
         window.history.replaceState({}, document.title, window.location.pathname);
       }
