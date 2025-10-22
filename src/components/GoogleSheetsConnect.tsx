@@ -454,7 +454,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     setMessage('');
 
     try {
-      const res = await fetch(`/api/kpi/verify-sync?userId=${getUserId()}&source=GoogleSheets&hours=24`);
+      const res = await fetch(`/api/verify-sync?userId=${getUserId()}&source=GoogleSheets&hours=24`);
       const data = await res.json();
       
       if (data.success) {
