@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 interface AppHeaderProps {
   title?: string;
@@ -11,19 +12,29 @@ interface AppHeaderProps {
 
 export default function AppHeader({ title = "SparkLeap", subtitle }: AppHeaderProps) {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Load user from localStorage
-    try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const userData = JSON.parse(userStr);
-        setUser(userData);
+    // Get current user from Supabase
+    const getUser = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+      } catch (error) {
+        console.error('Error loading user for header:', error);
       }
-    } catch (error) {
-      console.error('Error loading user for header:', error);
-    }
+    };
+
+    getUser();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {

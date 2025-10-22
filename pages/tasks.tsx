@@ -18,13 +18,22 @@ export default function TasksPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           setUser(user);
+          console.log('✅ User found:', user.email);
           
-          // Load user-specific tasks from database
-          const response = await fetch(`/api/tasks?userId=${user.id}`);
-          const data = await response.json();
-          if (data.success) {
-            setTasks(data.tasks);
-            console.log('📋 Loaded tasks for user:', user.email, '- Count:', data.tasks.length);
+          // Try to load user-specific tasks from database
+          try {
+            const response = await fetch(`/api/tasks?userId=${user.id}`);
+            const data = await response.json();
+            if (data.success) {
+              setTasks(data.tasks);
+              console.log('📋 Loaded tasks for user:', user.email, '- Count:', data.tasks.length);
+            } else {
+              console.log('⚠️ No tasks found or API error, starting with empty tasks');
+              setTasks([]);
+            }
+          } catch (apiError) {
+            console.log('⚠️ API error loading tasks, starting with empty tasks:', apiError);
+            setTasks([]);
           }
         } else {
           // No user found - redirect to Supabase login page
@@ -33,7 +42,7 @@ export default function TasksPage() {
           return;
         }
       } catch (error) {
-        console.error('Error loading user and tasks:', error);
+        console.error('Error loading user:', error);
         window.location.href = '/login-supabase';
       }
       setIsLoading(false);
