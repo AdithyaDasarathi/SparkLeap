@@ -75,7 +75,8 @@ export class SupabaseDatabaseService {
 
   // Data Source Operations
   static async createDataSource(config: Omit<DataSourceConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<DataSourceConfig> {
-    const { data, error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data, error } = await supabaseAdmin
       .from('data_sources')
       .insert({
         user_id: config.userId,
@@ -93,7 +94,8 @@ export class SupabaseDatabaseService {
   }
 
   static async getDataSource(id: string): Promise<DataSourceConfig | null> {
-    const { data, error } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data, error } = await supabaseAdmin
       .from('data_sources')
       .select('*')
       .eq('id', id)
