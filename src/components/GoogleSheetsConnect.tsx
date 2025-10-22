@@ -322,41 +322,6 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     }
   };
 
-  const handleAuthCode = async (code: string) => {
-    setLoading(true);
-    
-    try {
-      // Step 2: Exchange code for tokens and create data source
-      const tokenRes = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code,
-          userId: 'demo-user',
-          spreadsheetId: spreadsheetId || undefined,
-          range: range || 'A:Z'
-        })
-      });
-
-      const tokenData = await tokenRes.json();
-
-      if (!tokenRes.ok) {
-        throw new Error(tokenData.error || 'Failed to get access tokens');
-      }
-
-      setUserInfo(tokenData.userInfo);
-      setSpreadsheetInfo(tokenData.spreadsheetInfo);
-
-      // Create data source with Google Sheets credentials
-      await createDataSource(tokenData.tokens);
-
-    } catch (error) {
-      setMessage(`Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-      setAuthInProgress(false);
-    }
-  };
 
   const createDataSource = async (tokens: GoogleSheetsAuth) => {
     setLoading(true);
