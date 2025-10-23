@@ -79,12 +79,21 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
     // Load user from Supabase
     const loadUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        console.log('🔄 Loading user from Supabase...');
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          console.error('❌ Error getting user:', error);
+          router.push('/login-supabase');
+          return;
+        }
+        
         if (user) {
           setUser(user);
-          console.log('👤 Loaded user from Supabase:', user.email);
+          console.log('👤 Loaded user from Supabase:', user.email, 'ID:', user.id);
           
           // Fetch KPIs for the specific user
+          console.log('📊 Fetching KPIs for user:', user.id);
           fetchKPIs(user.id);
           
           // Load user-specific tasks
@@ -100,7 +109,7 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
           router.push('/login-supabase');
         }
       } catch (error) {
-        console.error('Error loading user:', error);
+        console.error('❌ Error loading user:', error);
         router.push('/login-supabase');
       }
     };
@@ -117,10 +126,22 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
 
   // Listen for data refresh events (e.g., after CSV import)
   useEffect(() => {
-    const handleDataRefresh = () => {
+    const handleDataRefresh = async () => {
       console.log('🔄 Data refresh event received, refetching KPIs...');
       if (user) {
+        console.log('👤 User available, refetching KPIs for:', user.id);
         fetchKPIs(user.id);
+      } else {
+        console.log('⚠️ User not available yet, waiting for user to load...');
+        // Wait a bit and try again
+        setTimeout(() => {
+          if (user) {
+            console.log('👤 User loaded after delay, refetching KPIs for:', user.id);
+            fetchKPIs(user.id);
+          } else {
+            console.log('❌ User still not available after delay');
+          }
+        }, 1000);
       }
     };
 
@@ -154,6 +175,12 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
     try {
       console.log('📊 Fetching real trend data for user:', userId);
       console.log('📊 Current user object:', user);
+      
+      if (!userId) {
+        console.log('❌ No user ID provided, cannot fetch trend data');
+        return;
+      }
+      
       const metrics = ['MRR', 'NetProfit', 'UserSignups', 'Runway', 'BurnRate', 'CashOnHand'];
       const trendData: Record<KPIMetric, KPITrend> = {} as Record<KPIMetric, KPITrend>;
 
