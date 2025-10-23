@@ -2,10 +2,22 @@ import { google } from "googleapis";
 
 export function getOAuthClient() {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI } = process.env;
+  
+  console.log('🔧 Google OAuth client creation:', {
+    hasClientId: !!GOOGLE_CLIENT_ID,
+    hasClientSecret: !!GOOGLE_CLIENT_SECRET,
+    hasRedirectUri: !!GOOGLE_REDIRECT_URI,
+    redirectUri: GOOGLE_REDIRECT_URI
+  });
+  
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REDIRECT_URI) {
+    throw new Error('Missing required Google OAuth environment variables');
+  }
+  
   const oauth2Client = new google.auth.OAuth2(
-    GOOGLE_CLIENT_ID!,
-    GOOGLE_CLIENT_SECRET!,
-    GOOGLE_REDIRECT_URI!
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GOOGLE_REDIRECT_URI
   );
   return oauth2Client;
 }
