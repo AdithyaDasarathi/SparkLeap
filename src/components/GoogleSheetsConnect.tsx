@@ -255,7 +255,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
           isActive: true,
           credentials: JSON.stringify({
             spreadsheetId: spreadsheetId,
-            range: dataRange || 'A1:Z1000',
+            range: range || 'A1:Z1000',
             lastSyncAt: new Date().toISOString()
           }),
           syncFrequency: 'manual'
@@ -346,7 +346,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
           const fullCreds = {
             ...creds,
             spreadsheetId: spreadsheetId || '1L-nkZI9_Xjtr027vS2gI8D_-YxlyalOb5kd7gvRCSOM',
-            range: dataRange || 'A1:Z100'
+            range: range || 'A1:Z100'
           };
                
           console.log('🔑 Creating data source with credentials:', {
