@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../../src/utils/database';
+import { SupabaseDatabaseService } from '../../../../src/lib/supabase-database';
 
 export async function DELETE(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function DELETE(
     console.log('🗑️ Deleting data source:', { id, userId });
 
     // Delete the data source
-    const success = await DatabaseService.deleteDataSource(id);
+    const success = await SupabaseDatabaseService.deleteDataSource(id);
 
     if (success) {
       console.log('✅ Data source deleted successfully');
@@ -50,7 +50,7 @@ export async function PATCH(
 
     if (updateType === 'databaseId') {
       // Get the existing data source
-      const existingDataSource = await DatabaseService.getDataSource(id);
+      const existingDataSource = await SupabaseDatabaseService.getDataSource(id);
       if (!existingDataSource) {
         return NextResponse.json(
           { success: false, error: 'Data source not found' },
@@ -59,7 +59,7 @@ export async function PATCH(
       }
 
       // Decrypt the existing credentials
-      const decryptedCredentials = DatabaseService.decryptCredentials(
+      const decryptedCredentials = SupabaseDatabaseService.decryptCredentials(
         existingDataSource.credentials.encryptedData,
         existingDataSource.credentials.iv
       );
@@ -71,7 +71,7 @@ export async function PATCH(
       credentials.databaseId = newDatabaseId;
       
       // Re-encrypt the updated credentials
-      const { encryptedData, iv } = DatabaseService.encryptCredentials(JSON.stringify(credentials));
+      const { encryptedData, iv } = SupabaseDatabaseService.encryptCredentials(JSON.stringify(credentials));
 
       // Update the data source with new credentials
       const updatedDataSource = {
@@ -83,7 +83,7 @@ export async function PATCH(
         updatedAt: new Date()
       };
 
-      const success = await DatabaseService.updateDataSource(id, updatedDataSource);
+      const success = await SupabaseDatabaseService.updateDataSource(id, updatedDataSource);
 
       if (success) {
         console.log('✅ Database ID updated successfully');

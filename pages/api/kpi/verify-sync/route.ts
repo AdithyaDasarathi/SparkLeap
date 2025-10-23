@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../../src/utils/database';
+import { SupabaseDatabaseService } from '../../../../src/lib/supabase-database';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔍 Verifying sync data for user: ${userId}, source: ${source}, last ${hours} hours`);
 
     // Get all KPIs for the user from the specified source
-    const allKpis = await DatabaseService.getKPIsByUser(userId);
+    const allKpis = await SupabaseDatabaseService.getKPIsByUser(userId);
     
     // Filter for the specific source and recent data
     const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Also get data source info to verify it exists
-    const dataSources = await DatabaseService.getDataSourcesByUser(userId);
+    const dataSources = await SupabaseDatabaseService.getDataSourcesByUser(userId);
     const targetDataSource = dataSources.find(ds => ds.source === source);
     
     if (!targetDataSource) {
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     console.log(`📊 Unique metrics in GoogleSheets data:`, Array.from(uniqueMetrics));
     
     // Also get data source info
-    const allDataSources = await DatabaseService.getDataSourcesByUser(userId);
+    const allDataSources = await SupabaseDatabaseService.getDataSourcesByUser(userId);
     console.log(`📊 Found ${allDataSources.length} data sources for user ${userId}`);
     allDataSources.forEach(ds => {
       console.log(`  - ${ds.id}: ${ds.source} (${ds.isActive ? 'active' : 'inactive'})`);

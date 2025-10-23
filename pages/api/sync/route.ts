@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../src/utils/database';
+import { SupabaseDatabaseService } from '../../../src/lib/supabase-database';
 import { KPISyncService } from '../../../src/utils/dataSourceIntegrations';
 
 export async function POST(request: NextRequest) {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔄 Starting sync for data source: ${sourceId}`);
 
     // Create sync job
-    const syncJob = await DatabaseService.createSyncJob({
+    const syncJob = await SupabaseDatabaseService.createSyncJob({
       userId: userId || 'unknown',
       sourceId,
       status: 'running',
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const result = await KPISyncService.syncDataSource(sourceId);
 
     // Update sync job with result
-    await DatabaseService.updateSyncJob(syncJob.id, {
+    await SupabaseDatabaseService.updateSyncJob(syncJob.id, {
       status: result.success ? 'completed' : 'failed',
       completedAt: new Date(),
       errorMessage: result.error,
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    const syncJobs = await DatabaseService.getSyncJobsByUser(userId, limit);
+    const syncJobs = await SupabaseDatabaseService.getSyncJobsByUser(userId, limit);
     return NextResponse.json({ syncJobs });
   } catch (error) {
     console.error('Error fetching sync jobs:', error);

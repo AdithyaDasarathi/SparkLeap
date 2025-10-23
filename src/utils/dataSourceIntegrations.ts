@@ -1,5 +1,5 @@
 import { DataSource, KPIMetric } from '../types/kpi';
-import { DatabaseService } from './database';
+import { SupabaseDatabaseService } from '../lib/supabase-database';
 import Stripe from 'stripe';
 
 export interface IntegrationResult {
@@ -1254,7 +1254,7 @@ export class KPISyncService {
       console.log(`🔍 Looking for data source ${sourceId}:`);
       
       // Get data source configuration
-      let dataSource = await DatabaseService.getDataSource(sourceId);
+      let dataSource = await SupabaseDatabaseService.getDataSource(sourceId);
       
       if (!dataSource) {
         console.log('❌ Data source not found');
@@ -1264,7 +1264,7 @@ export class KPISyncService {
       console.log(`✅ Found data source: ${dataSource.source}`);
 
       // Decrypt credentials
-      const decryptedCredentials = DatabaseService.decryptCredentials(
+      const decryptedCredentials = SupabaseDatabaseService.decryptCredentials(
         dataSource.credentials.encryptedData,
         dataSource.credentials.iv
       );
@@ -1299,7 +1299,7 @@ export class KPISyncService {
         console.log(`📈 Processing ${historicalData.length} historical data points...`);
         
         // Get all existing KPIs once to avoid multiple database calls
-        const existingKpis = await DatabaseService.getKPIsByUser(dataSource.userId);
+        const existingKpis = await SupabaseDatabaseService.getKPIsByUser(dataSource.userId);
         
         // Process historical data first (if available)
         if (historicalData.length > 0) {
@@ -1307,7 +1307,7 @@ export class KPISyncService {
           
           for (const dataPoint of historicalData) {
             // Create historical KPI entry for each data point
-            await DatabaseService.createKPI({
+            await SupabaseDatabaseService.createKPI({
               userId: dataSource.userId,
               metricName: dataPoint.metric,
               source: dataSource.source,
@@ -1336,7 +1336,7 @@ export class KPISyncService {
             if (existingKpi) {
               // Update existing KPI
               console.log(`🔄 Updating existing ${metricName}: ${existingKpi.value} → ${value}`);
-              await DatabaseService.updateKPI(existingKpi.id, {
+              await SupabaseDatabaseService.updateKPI(existingKpi.id, {
                 value,
                 lastSyncedAt: new Date(),
                 timestamp: new Date()
@@ -1345,7 +1345,7 @@ export class KPISyncService {
             } else {
               // Create new KPI if none exists
               console.log(`➕ Creating new ${metricName}: ${value}`);
-              await DatabaseService.createKPI({
+              await SupabaseDatabaseService.createKPI({
                 userId: dataSource.userId,
                 metricName: metricName as KPIMetric,
                 source: dataSource.source,
@@ -1372,7 +1372,7 @@ export class KPISyncService {
         }
 
         // Update data source last sync time
-        await DatabaseService.updateDataSource(sourceId, {
+        await SupabaseDatabaseService.updateDataSource(sourceId, {
           lastSyncAt: new Date()
         });
       }
@@ -1390,7 +1390,7 @@ export class KPISyncService {
 
   static async scheduleSyncJobs(): Promise<void> {
     // This would be called by a CRON job or worker queue
-    const dataSources = Array.from(await DatabaseService.getDataSourcesByUser('all'));
+    const dataSources = Array.from(await SupabaseDatabaseService.getDataSourcesByUser('all'));
     
     for (const dataSource of dataSources) {
       if (!dataSource.isActive) continue;
@@ -1398,7 +1398,7 @@ export class KPISyncService {
       const shouldSync = this.shouldSyncNow(dataSource);
       if (shouldSync) {
         // Create sync job
-        await DatabaseService.createSyncJob({
+        await SupabaseDatabaseService.createSyncJob({
           userId: dataSource.userId,
           sourceId: dataSource.id,
           status: 'pending',

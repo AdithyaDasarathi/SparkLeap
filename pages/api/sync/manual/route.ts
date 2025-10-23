@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../../src/utils/database';
+import { SupabaseDatabaseService } from '../../../../src/lib/supabase-database';
 import { KPISyncService } from '../../../../src/utils/dataSourceIntegrations';
 
 export async function POST(request: NextRequest) {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     console.log(`🔄 Manual sync requested for data source: ${sourceId}`);
 
     // Verify data source exists
-    const dataSource = await DatabaseService.getDataSource(sourceId);
+    const dataSource = await SupabaseDatabaseService.getDataSource(sourceId);
     if (!dataSource) {
       return NextResponse.json(
         { error: `Data source ${sourceId} not found` },
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const result = await KPISyncService.syncDataSource(sourceId);
 
     // Get updated KPI count for this source
-    const allKpis = await DatabaseService.getKPIsByUser(userId);
+    const allKpis = await SupabaseDatabaseService.getKPIsByUser(userId);
     const sourceKpis = allKpis.filter(kpi => kpi.source === dataSource.source);
 
     return NextResponse.json({
