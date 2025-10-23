@@ -277,6 +277,8 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     const credentials = urlParams.get('credentials');
     const source = urlParams.get('source');
     
+    console.log('🔍 Checking OAuth callback:', { auth, hasCredentials: !!credentials, source, hasUser: !!user });
+    
     if (auth === 'success' && credentials && source === 'sheets' && user) {
       // User is authenticated via Google OAuth, create data source
       console.log('🔗 Google Sheets authentication completed, creating data source...');
@@ -383,8 +385,8 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     setMessage('');
 
     try {
-      // Use direct Google OAuth for Google Sheets access
-      window.location.href = '/api/google/sheets-auth';
+      // Use the existing Google OAuth endpoint with sheets state
+      window.location.href = '/api/google/auth?state=sheets';
     } catch (error) {
       setAuthInProgress(false);
       setMessage(`Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
