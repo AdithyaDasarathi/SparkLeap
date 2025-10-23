@@ -149,11 +149,18 @@ export class SupabaseDatabaseService {
   }
 
   static async deleteDataSource(id: string): Promise<boolean> {
+    console.log('🗑️ SupabaseDatabaseService: Deleting data source:', id);
     const supabaseAdmin = getSupabaseAdmin()
     const { error } = await supabaseAdmin
       .from('data_sources')
       .delete()
       .eq('id', id)
+
+    if (error) {
+      console.error('❌ SupabaseDatabaseService: Delete error:', error);
+    } else {
+      console.log('✅ SupabaseDatabaseService: Data source deleted successfully');
+    }
 
     return !error
   }

@@ -7,13 +7,22 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
-    const body = await request.json();
+    console.log('🗑️ DELETE request received for data source:', id);
+    
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      console.log('⚠️ No JSON body provided, using empty object');
+      body = {};
+    }
+    
     const { userId } = body;
-
     console.log('🗑️ Deleting data source:', { id, userId });
 
     // Delete the data source
     const success = await SupabaseDatabaseService.deleteDataSource(id);
+    console.log('🗑️ Delete operation result:', success);
 
     if (success) {
       console.log('✅ Data source deleted successfully');

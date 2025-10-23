@@ -489,26 +489,49 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
   };
 
   const handleDisconnect = async () => {
-    if (!sourceId || !confirm('Are you sure you want to disconnect Google Sheets?')) return;
+    console.log('🔍 Disconnect button clicked, sourceId:', sourceId);
+    
+    if (!sourceId) {
+      console.log('❌ No sourceId found, cannot disconnect');
+      setMessage('❌ No data source found to disconnect');
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to disconnect Google Sheets?')) {
+      console.log('❌ User cancelled disconnect');
+      return;
+    }
 
+    console.log('🗑️ Disconnecting Google Sheets data source:', sourceId);
+    
     try {
+      const userId = getUserId();
+      console.log('👤 User ID for disconnect:', userId);
+      
       const res = await fetch(`/api/datasources/${sourceId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: getUserId() })
+        body: JSON.stringify({ userId })
       });
 
+      console.log('📡 Disconnect response status:', res.status);
+      
       if (res.ok) {
+        const data = await res.json();
+        console.log('✅ Disconnect successful:', data);
         setIsConnected(false);
         setSourceId(null);
         setSpreadsheetInfo(null);
         setUserInfo(null);
         setMessage('✅ Google Sheets disconnected successfully');
       } else {
-        setMessage('❌ Failed to disconnect Google Sheets');
+        const errorData = await res.json();
+        console.error('❌ Disconnect failed:', errorData);
+        setMessage(`❌ Failed to disconnect Google Sheets: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
-      setMessage('❌ Failed to disconnect Google Sheets');
+      console.error('❌ Disconnect error:', error);
+      setMessage(`❌ Failed to disconnect Google Sheets: ${error instanceof Error ? error.message : 'Network error'}`);
     }
   };
 
