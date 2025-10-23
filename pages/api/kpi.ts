@@ -17,6 +17,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let trends = await SupabaseDatabaseService.getKPITrends(userId, metricName as KPIMetric, parsedDays);
         
         console.log(`📊 KPI API - Fetching trends for ${metricName}, userId: ${userId}, found ${trends.length} trends`);
+        
+        // Debug: Show what trends were found
+        if (trends.length > 0) {
+          console.log(`📊 KPI API - Trends found for ${metricName}:`, trends);
+        }
       
         // Only seed sample data if there's no real data at all (including Google Sheets)
         const allKpis = await SupabaseDatabaseService.getKPIsByUser(userId);
@@ -24,6 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         console.log(`📊 KPI API - Total KPIs for user: ${allKpis.length}, hasRealData: ${hasRealData}`);
         console.log(`📊 KPI API - KPI sources:`, allKpis.map(k => ({ metric: k.metricName, source: k.source, timestamp: k.timestamp })));
+        
+        // Debug: Show KPIs for this specific metric
+        const metricKpis = allKpis.filter(kpi => kpi.metricName === metricName);
+        console.log(`📊 KPI API - KPIs for ${metricName}:`, metricKpis.map(k => ({ value: k.value, source: k.source, timestamp: k.timestamp })));
         
         if (trends.length === 0 && !hasRealData) {
           console.log('📊 No real data found, seeding sample data...');
