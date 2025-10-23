@@ -457,6 +457,13 @@ export class GoogleSheetsIntegration extends DataSourceIntegration {
 
     // Debug: Log the headers we found
     console.log('📋 Found headers:', headers);
+    console.log('📋 Header mapping available:', Object.keys(headerMapping));
+    
+    // Check which headers have mappings
+    const mappedHeaders = headers.filter(header => headerMapping[header]);
+    const unmappedHeaders = headers.filter(header => !headerMapping[header] && !header.includes('date') && !header.includes('time'));
+    console.log('✅ Mapped headers:', mappedHeaders);
+    console.log('⚠️ Unmapped headers:', unmappedHeaders);
     
     // Find date column (look for common date column names)
     const dateColumnIndex = headers.findIndex(header => 
