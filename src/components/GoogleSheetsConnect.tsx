@@ -101,9 +101,32 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
 
       // Look for common KPI column patterns
       const kpiMetrics: any[] = [];
-      const currentDate = new Date();
+      
+      // Check if first column is a date column
+      const hasDateColumn = headers[0].toLowerCase().includes('date') || 
+                           headers[0].toLowerCase().includes('time') ||
+                           headers[0].toLowerCase().includes('month');
 
-      for (const row of dataRows) {
+      console.log('📊 Parsing CSV with headers:', headers);
+      console.log('📊 Found', dataRows.length, 'data rows');
+      console.log('📅 Has date column:', hasDateColumn);
+
+      for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
+        const row = dataRows[rowIndex];
+        
+        // Parse date from first column if it exists, otherwise use current date
+        let rowDate = new Date();
+        if (hasDateColumn && row[0]) {
+          const dateValue = row[0].trim();
+          // Try to parse various date formats
+          const parsedDate = new Date(dateValue);
+          if (!isNaN(parsedDate.getTime())) {
+            rowDate = parsedDate;
+          }
+        }
+
+        console.log(`📅 Processing row ${rowIndex + 1}, date: ${rowDate.toISOString()}`);
+
         for (let i = 0; i < headers.length; i++) {
           const header = headers[i].toLowerCase();
           const value = parseFloat(row[i]);
@@ -136,19 +159,22 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
           }
 
           if (metricName) {
+            console.log(`📈 Creating KPI: ${metricName} = ${value} for date ${rowDate.toISOString()}`);
             kpiMetrics.push({
-              userId: getUserId(), // Use current user ID
+              userId: getUserId(),
               metricName,
               source: 'GoogleSheets',
               value,
-              timestamp: currentDate,
-              lastSyncedAt: currentDate,
+              timestamp: rowDate,
+              lastSyncedAt: new Date(),
               isManualOverride: false,
               status: 'active'
             });
           }
         }
       }
+
+      console.log(`📊 Created ${kpiMetrics.length} KPI entries with historical data`);
 
       return kpiMetrics;
     } catch (error) {
@@ -225,8 +251,11 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
         onDataGenerated();
       }
 
-      // Trigger dashboard refresh
-      window.dispatchEvent(new CustomEvent('dataRefresh'));
+      // Wait a moment for data to be saved, then trigger dashboard refresh
+      setTimeout(() => {
+        console.log('🔄 Triggering dashboard refresh after Google Sheets import...');
+        window.dispatchEvent(new CustomEvent('dataRefresh'));
+      }, 1000);
 
     } catch (error) {
       console.error('Import error:', error);
