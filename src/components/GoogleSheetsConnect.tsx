@@ -246,24 +246,40 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
       
       // Create a data source record for Google Sheets
       console.log('💾 Creating Google Sheets data source record...');
-      const dataSourceResponse = await fetch('/api/datasources', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: getUserId(),
-          source: 'GoogleSheets',
-          isActive: true,
-          credentials: JSON.stringify({
-            spreadsheetId: spreadsheetId,
-            range: range || 'A1:Z1000',
-            lastSyncAt: new Date().toISOString()
-          }),
-          syncFrequency: 'manual'
-        })
-      });
-      
-      const dataSourceResult = await dataSourceResponse.json();
-      console.log('💾 Data source creation result:', dataSourceResult);
+      try {
+        const dataSourceResponse = await fetch('/api/datasources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: getUserId(),
+            source: 'GoogleSheets',
+            isActive: true,
+            credentials: JSON.stringify({
+              spreadsheetId: spreadsheetId,
+              range: range || 'A1:Z1000',
+              lastSyncAt: new Date().toISOString()
+            }),
+            syncFrequency: 'manual'
+          })
+        });
+        
+        if (!dataSourceResponse.ok) {
+          throw new Error(`Data source creation failed: ${dataSourceResponse.status} ${dataSourceResponse.statusText}`);
+        }
+        
+        const dataSourceResult = await dataSourceResponse.json();
+        console.log('💾 Data source creation result:', dataSourceResult);
+        
+        if (!dataSourceResult.dataSource) {
+          throw new Error('Data source creation returned no data source');
+        }
+        
+        console.log('✅ Data source created successfully:', dataSourceResult.dataSource.id);
+      } catch (dataSourceError) {
+        console.error('❌ Failed to create data source:', dataSourceError);
+        setMessage(`✅ Successfully imported ${kpiMetrics.length} KPI metrics from Google Sheets! However, there was an issue creating the data source record. The data is available but may not sync automatically.`);
+        return; // Don't set isConnected=true if data source creation failed
+      }
       
       setMessage(`✅ Successfully imported ${kpiMetrics.length} KPI metrics from Google Sheets!`);
       setIsConnected(true);
@@ -277,6 +293,12 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
       setTimeout(() => {
         console.log('🔄 Triggering dashboard refresh after Google Sheets import...');
         window.dispatchEvent(new CustomEvent('dataRefresh'));
+        
+        // Also recheck the connection status after a delay
+        setTimeout(() => {
+          console.log('🔄 Rechecking connection status after data source creation...');
+          checkConnection();
+        }, 500);
       }, 1000);
 
     } catch (error) {

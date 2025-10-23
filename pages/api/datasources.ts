@@ -25,12 +25,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { userId, source, credentials, syncFrequency = 'daily' } = req.body;
 
+      console.log('📊 Data source creation request:', { userId, source, syncFrequency, hasCredentials: !!credentials });
+
       if (!userId || !source || !credentials) {
+        console.error('❌ Missing required fields:', { userId: !!userId, source: !!source, credentials: !!credentials });
         return res.status(400).json({ error: 'userId, source, and credentials are required' });
       }
 
       // Encrypt credentials before storing
       const encryptedCredentials = SupabaseDatabaseService.encryptCredentials(credentials);
+      console.log('🔐 Credentials encrypted successfully');
 
       const dataSource = await SupabaseDatabaseService.createDataSource({
         userId,
@@ -40,9 +44,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         syncFrequency: syncFrequency as SyncFrequency
       });
 
+      console.log('✅ Data source created successfully:', dataSource.id);
       return res.status(201).json({ dataSource });
     } catch (error) {
-      console.error('Error creating data source:', error);
+      console.error('❌ Error creating data source:', error);
       return res.status(500).json({ error: 'Failed to create data source' });
     }
   }
