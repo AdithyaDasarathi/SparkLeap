@@ -13,7 +13,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     // Use the correct redirect URI for sheets
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    const redirectUri = `${baseUrl}/api/google-sheets-callback`;
+    // Use HTTPS for production
+    const redirectUri = baseUrl.includes('localhost') 
+      ? `${baseUrl}/api/auth/google/callback`
+      : `https://sparkleap.ai/api/auth/google/callback`;
     
     console.log('🔗 Using redirect URI:', redirectUri);
     oauth2Client.redirectUri = redirectUri;
