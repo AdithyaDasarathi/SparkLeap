@@ -244,9 +244,29 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
 
       await Promise.all(createPromises);
       
+      // Create a data source record for Google Sheets
+      console.log('💾 Creating Google Sheets data source record...');
+      const dataSourceResponse = await fetch('/api/datasources', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: getUserId(),
+          source: 'GoogleSheets',
+          isActive: true,
+          credentials: JSON.stringify({
+            spreadsheetId: spreadsheetId,
+            range: dataRange || 'A1:Z1000',
+            lastSyncAt: new Date().toISOString()
+          }),
+          syncFrequency: 'manual'
+        })
+      });
+      
+      const dataSourceResult = await dataSourceResponse.json();
+      console.log('💾 Data source creation result:', dataSourceResult);
+      
       setMessage(`✅ Successfully imported ${kpiMetrics.length} KPI metrics from Google Sheets!`);
-      // Don't set isConnected=true here since we don't have a sourceId
-      // The CSV import creates KPIs directly, not a data source
+      setIsConnected(true);
       
       // Notify parent component
       if (onDataGenerated) {

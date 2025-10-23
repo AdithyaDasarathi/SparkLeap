@@ -15,10 +15,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (metricName) {
         // Get trend data for specific metric
         let trends = await SupabaseDatabaseService.getKPITrends(userId, metricName as KPIMetric, parsedDays);
+        
+        console.log(`📊 KPI API - Fetching trends for ${metricName}, userId: ${userId}, found ${trends.length} trends`);
       
         // Only seed sample data if there's no real data at all (including Google Sheets)
         const allKpis = await SupabaseDatabaseService.getKPIsByUser(userId);
         const hasRealData = allKpis.some(kpi => kpi.source !== 'Manual');
+        
+        console.log(`📊 KPI API - Total KPIs for user: ${allKpis.length}, hasRealData: ${hasRealData}`);
+        console.log(`📊 KPI API - KPI sources:`, allKpis.map(k => ({ metric: k.metricName, source: k.source, timestamp: k.timestamp })));
         
         if (trends.length === 0 && !hasRealData) {
           console.log('📊 No real data found, seeding sample data...');
@@ -32,6 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
           
           if (latestKpi) {
+            console.log(`📊 Using latest KPI value: ${latestKpi.value} from ${latestKpi.source}`);
             trends = [{
               value: latestKpi.isManualOverride ? latestKpi.overrideValue! : latestKpi.value,
               timestamp: latestKpi.timestamp
@@ -39,6 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
         
+        console.log(`📊 KPI API - Returning ${trends.length} trends for ${metricName}`);
         return res.status(200).json({ trends });
       } else {
         // Get all KPIs for user
