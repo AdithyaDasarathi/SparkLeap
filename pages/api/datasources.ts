@@ -79,20 +79,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'DELETE') {
     try {
       const { id } = req.query;
+      console.log('🗑️ Main datasources API: DELETE request received', { id, query: req.query });
 
       if (!id || typeof id !== 'string') {
+        console.log('❌ Main datasources API: No ID provided');
         return res.status(400).json({ error: 'id is required' });
       }
 
+      console.log('🗑️ Main datasources API: Deleting data source:', id);
       const success = await SupabaseDatabaseService.deleteDataSource(id);
+      console.log('🗑️ Main datasources API: Delete result:', success);
       
       if (!success) {
+        console.log('❌ Main datasources API: Data source not found or delete failed');
         return res.status(404).json({ error: 'Data source not found' });
       }
 
+      console.log('✅ Main datasources API: Data source deleted successfully');
       return res.status(200).json({ success: true });
     } catch (error) {
-      console.error('Error deleting data source:', error);
+      console.error('❌ Main datasources API: Error deleting data source:', error);
       return res.status(500).json({ error: 'Failed to delete data source' });
     }
   }

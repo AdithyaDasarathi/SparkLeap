@@ -508,7 +508,7 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
       const userId = getUserId();
       console.log('👤 User ID for disconnect:', userId);
       
-      const res = await fetch(`/api/datasources/${sourceId}`, {
+      const res = await fetch(`/api/datasources?id=${sourceId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId })
