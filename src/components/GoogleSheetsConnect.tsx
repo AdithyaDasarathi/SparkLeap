@@ -225,6 +225,9 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
         onDataGenerated();
       }
 
+      // Trigger dashboard refresh
+      window.dispatchEvent(new CustomEvent('dataRefresh'));
+
     } catch (error) {
       console.error('Import error:', error);
       setMessage(`❌ Import failed: ${error instanceof Error ? error.message : 'Unknown error'}. Make sure the sheet is publicly accessible.`);

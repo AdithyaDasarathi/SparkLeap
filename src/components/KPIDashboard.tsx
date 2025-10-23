@@ -115,6 +115,19 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
     }
   }, [chatMessages]);
 
+  // Listen for data refresh events (e.g., after CSV import)
+  useEffect(() => {
+    const handleDataRefresh = () => {
+      console.log('🔄 Data refresh event received, refetching KPIs...');
+      if (user) {
+        fetchKPIs(user.id);
+      }
+    };
+
+    window.addEventListener('dataRefresh', handleDataRefresh);
+    return () => window.removeEventListener('dataRefresh', handleDataRefresh);
+  }, [user]);
+
   const fetchKPIs = async (userIdentifier?: string) => {
     try {
       setLoading(true);
@@ -127,14 +140,70 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
         console.log('📊 Fetched KPIs:', data.kpis.length, 'total KPIs');
         setKpis(data.kpis);
         
-        // Generate demo data for the exact metrics shown in the image
-        const demoData = generateExactDemoData();
-        setTrends(demoData);
+        // Fetch real trend data for each metric instead of using demo data
+        await fetchRealTrendData(actualUserId);
       }
     } catch (error) {
       console.error('Error fetching KPIs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRealTrendData = async (userId: string) => {
+    try {
+      console.log('📊 Fetching real trend data for user:', userId);
+      const metrics = ['MRR', 'NetProfit', 'UserSignups', 'Runway', 'BurnRate', 'CashOnHand'];
+      const trendData: Record<KPIMetric, KPITrend> = {} as Record<KPIMetric, KPITrend>;
+
+      for (const metric of metrics) {
+        try {
+          const response = await fetch(`/api/kpi?userId=${userId}&metricName=${metric}&days=30`);
+          const data = await response.json();
+          
+          if (data.trends && data.trends.length > 0) {
+            console.log(`📈 Found ${data.trends.length} trend points for ${metric}`);
+            const values = data.trends.map((trend: any) => ({
+              date: new Date(trend.timestamp).toISOString().split('T')[0],
+              value: trend.value
+            }));
+            
+            // Calculate trend direction and percentage change
+            const latestValue = values[values.length - 1]?.value || 0;
+            const previousValue = values[values.length - 2]?.value || latestValue;
+            const percentageChange = previousValue > 0 ? ((latestValue - previousValue) / previousValue) * 100 : 0;
+            
+            trendData[metric as KPIMetric] = {
+              metricName: metric as KPIMetric,
+              values,
+              trend: percentageChange > 0 ? 'up' : 'down',
+              percentageChange: Math.abs(percentageChange)
+            };
+          } else {
+            console.log(`⚠️ No trend data found for ${metric}, using demo data`);
+            // Fallback to demo data for metrics without real data
+            const demoData = generateExactDemoData();
+            if (demoData[metric as KPIMetric]) {
+              trendData[metric as KPIMetric] = demoData[metric as KPIMetric];
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching trend data for ${metric}:`, error);
+          // Use demo data as fallback
+          const demoData = generateExactDemoData();
+          if (demoData[metric as KPIMetric]) {
+            trendData[metric as KPIMetric] = demoData[metric as KPIMetric];
+          }
+        }
+      }
+
+      console.log('📊 Setting real trend data:', Object.keys(trendData));
+      setTrends(trendData);
+    } catch (error) {
+      console.error('Error fetching real trend data:', error);
+      // Fallback to demo data
+      const demoData = generateExactDemoData();
+      setTrends(demoData);
     }
   };
 

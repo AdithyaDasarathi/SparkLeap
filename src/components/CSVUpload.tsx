@@ -138,6 +138,9 @@ export default function CSVUpload({ userId = 'demo-user', onUploadSuccess }: CSV
         if (onUploadSuccess) {
           onUploadSuccess(data.dataSource);
         }
+
+        // Trigger dashboard refresh
+        window.dispatchEvent(new CustomEvent('dataRefresh'));
       } else {
         setMessage(`❌ Quick import failed: ${data.error || 'Unknown error'}`);
       }
@@ -204,6 +207,9 @@ export default function CSVUpload({ userId = 'demo-user', onUploadSuccess }: CSV
         if (onUploadSuccess) {
           onUploadSuccess(data.dataSource);
         }
+
+        // Trigger dashboard refresh
+        window.dispatchEvent(new CustomEvent('dataRefresh'));
       } else {
         setMessage(`❌ Upload failed: ${data.error || 'Unknown error'}`);
       }
