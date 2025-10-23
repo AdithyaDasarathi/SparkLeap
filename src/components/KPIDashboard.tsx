@@ -153,16 +153,20 @@ export default function KPIDashboard({ userId }: KPIDashboardProps) {
   const fetchRealTrendData = async (userId: string) => {
     try {
       console.log('📊 Fetching real trend data for user:', userId);
+      console.log('📊 Current user object:', user);
       const metrics = ['MRR', 'NetProfit', 'UserSignups', 'Runway', 'BurnRate', 'CashOnHand'];
       const trendData: Record<KPIMetric, KPITrend> = {} as Record<KPIMetric, KPITrend>;
 
       for (const metric of metrics) {
         try {
+          console.log(`🔍 Fetching trend data for metric: ${metric}`);
           const response = await fetch(`/api/kpi?userId=${userId}&metricName=${metric}&days=30`);
           const data = await response.json();
           
+          console.log(`📊 API response for ${metric}:`, data);
+          
           if (data.trends && data.trends.length > 0) {
-            console.log(`📈 Found ${data.trends.length} trend points for ${metric}`);
+            console.log(`📈 Found ${data.trends.length} trend points for ${metric}:`, data.trends);
             const values = data.trends.map((trend: any) => ({
               date: new Date(trend.timestamp).toISOString().split('T')[0],
               value: trend.value

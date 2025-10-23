@@ -67,9 +67,9 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     return () => subscription.unsubscribe();
   }, []);
 
-  // Get current user ID from Supabase
+  // Get current user ID from Supabase (must match dashboard format)
   const getUserId = () => {
-    const userId = user?.id || user?.email || 'demo-user';
+    const userId = user?.id || 'demo-user';
     console.log('🔍 GoogleSheetsConnect - getUserId:', userId, 'User:', user?.email || 'No user');
     return userId;
   };
@@ -228,8 +228,10 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
 
       // Send KPIs to backend
       console.log('💾 Creating KPIs for user:', getUserId(), 'metrics:', kpiMetrics.length);
+      console.log('💾 KPI metrics to create:', kpiMetrics.map(k => ({ metricName: k.metricName, value: k.value, timestamp: k.timestamp })));
+      
       const createPromises = kpiMetrics.map(async (kpi) => {
-        console.log('💾 Creating KPI:', kpi.metricName, 'for user:', kpi.userId);
+        console.log('💾 Creating KPI:', kpi.metricName, 'value:', kpi.value, 'timestamp:', kpi.timestamp, 'for user:', kpi.userId);
         const response = await fetch('/api/kpi', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
