@@ -84,6 +84,71 @@ export default function CSVUpload({ userId = 'demo-user', onUploadSuccess }: CSV
     }
   };
 
+  const handleQuickImport = async () => {
+    if (!file) {
+      setMessage('Please select a CSV file');
+      return;
+    }
+
+    // Use filename as source name for quick import
+    const quickSourceName = file.name.replace(/\.csv$/i, '');
+    setSourceName(quickSourceName);
+    
+    setLoading(true);
+    setMessage('🔄 Quick importing CSV data...');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', userId);
+      formData.append('sourceName', quickSourceName);
+
+      console.log('📊 Quick importing CSV file:', {
+        fileName: file.name,
+        size: file.size,
+        sourceName: quickSourceName
+      });
+
+      const res = await fetch('/api/datasources/csv-upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        const metricsSynced = data.metrics.metricsSynced || 0;
+        const syncMessage = metricsSynced > 0 
+          ? `✅ Quick import successful! ${metricsSynced} metrics created from ${data.metrics.linesProcessed} rows. Your KPI graphs are now updated!`
+          : `✅ CSV uploaded successfully! Processed ${data.metrics.linesProcessed} rows. ${data.syncError ? 'Auto-sync failed, but you can sync manually.' : ''}`;
+        
+        setMessage(syncMessage);
+        setFile(null);
+        setSourceName('');
+        
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+
+        // Refresh the list
+        fetchCSVDataSources();
+
+        // Call success callback
+        if (onUploadSuccess) {
+          onUploadSuccess(data.dataSource);
+        }
+      } else {
+        setMessage(`❌ Quick import failed: ${data.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Quick import error:', error);
+      setMessage('❌ Quick import failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!file) {
       setMessage('Please select a CSV file');
@@ -118,7 +183,12 @@ export default function CSVUpload({ userId = 'demo-user', onUploadSuccess }: CSV
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setMessage(`✅ CSV uploaded successfully! Processed ${data.metrics.linesProcessed} rows.`);
+        const metricsSynced = data.metrics.metricsSynced || 0;
+        const syncMessage = metricsSynced > 0 
+          ? `✅ CSV uploaded and synced successfully! ${metricsSynced} metrics created from ${data.metrics.linesProcessed} rows.`
+          : `✅ CSV uploaded successfully! Processed ${data.metrics.linesProcessed} rows. ${data.syncError ? 'Auto-sync failed, but you can sync manually.' : ''}`;
+        
+        setMessage(syncMessage);
         setFile(null);
         setSourceName('');
         
@@ -263,12 +333,23 @@ export default function CSVUpload({ userId = 'demo-user', onUploadSuccess }: CSV
           />
         </div>
 
-        {/* Upload Button */}
-        <div className="mt-4">
+        {/* Upload Buttons */}
+        <div className="mt-4 flex space-x-3">
+          <button
+            onClick={handleQuickImport}
+            disabled={!file || loading}
+            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+              !file || loading
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500'
+            }`}
+          >
+            {loading ? 'Importing...' : '🚀 Quick Import'}
+          </button>
           <button
             onClick={handleUpload}
             disabled={!file || loading}
-            className={`w-full px-4 py-2 rounded-md font-medium transition-colors ${
+            className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
               !file || loading
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'

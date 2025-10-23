@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DatabaseService } from '../../../../src/utils/database';
+import { SupabaseDatabaseService } from '../../../../src/lib/supabase-database';
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,10 +67,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Encrypt credentials before storing
-    const encryptedCredentials = DatabaseService.encryptCredentials(credentials);
+    const encryptedCredentials = SupabaseDatabaseService.encryptCredentials(credentials);
 
     // Create data source
-    const dataSource = await DatabaseService.createDataSource({
+    const dataSource = await SupabaseDatabaseService.createDataSource({
       userId,
       source: 'CSV',
       isActive: true,
@@ -80,16 +80,44 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ CSV data source created successfully:', dataSource.id);
 
-    return NextResponse.json({ 
-      success: true, 
-      dataSource,
-      message: 'CSV file uploaded and data source created successfully',
-      metrics: {
-        fileName: file.name,
-        linesProcessed: lines.length - 1, // Subtract header row
-        uploadedAt: new Date().toISOString()
-      }
-    });
+    // Auto-sync the CSV data to create KPIs
+    try {
+      console.log('🔄 Auto-syncing CSV data to create KPIs...');
+      const { KPISyncService } = await import('../../../../src/utils/dataSourceIntegrations');
+      const syncResult = await KPISyncService.syncDataSource(dataSource.id);
+      
+      console.log('📊 Auto-sync result:', {
+        success: syncResult.success,
+        metricsSynced: syncResult.metricsSynced,
+        error: syncResult.error
+      });
+
+      return NextResponse.json({ 
+        success: true, 
+        dataSource,
+        message: `CSV file uploaded and synced successfully! ${syncResult.metricsSynced} metrics created.`,
+        metrics: {
+          fileName: file.name,
+          linesProcessed: lines.length - 1, // Subtract header row
+          metricsSynced: syncResult.metricsSynced,
+          uploadedAt: new Date().toISOString()
+        },
+        syncResult
+      });
+    } catch (syncError) {
+      console.error('❌ Auto-sync failed:', syncError);
+      return NextResponse.json({ 
+        success: true, 
+        dataSource,
+        message: 'CSV file uploaded successfully, but auto-sync failed. You can sync manually later.',
+        metrics: {
+          fileName: file.name,
+          linesProcessed: lines.length - 1,
+          uploadedAt: new Date().toISOString()
+        },
+        syncError: syncError instanceof Error ? syncError.message : 'Unknown sync error'
+      });
+    }
 
   } catch (error) {
     console.error('❌ Error processing CSV upload:', error);
@@ -113,13 +141,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all CSV data sources for the user
-    const dataSources = await DatabaseService.getDataSourcesByUser(userId);
+    const dataSources = await SupabaseDatabaseService.getDataSourcesByUser(userId);
     const csvDataSources = dataSources.filter(ds => ds.source === 'CSV');
 
     // Decrypt and parse CSV data source info
     const csvInfo = csvDataSources.map(ds => {
       try {
-        const decryptedCredentials = DatabaseService.decryptCredentials(
+        const decryptedCredentials = SupabaseDatabaseService.decryptCredentials(
           ds.credentials.encryptedData,
           ds.credentials.iv
         );
