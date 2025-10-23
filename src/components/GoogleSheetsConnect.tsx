@@ -385,8 +385,8 @@ export default function GoogleSheetsConnect({ onDataGenerated }: GoogleSheetsCon
     setMessage('');
 
     try {
-      // Use the existing Google OAuth endpoint with sheets state
-      window.location.href = '/api/google/auth?state=sheets';
+      // Use the Pages Router Google Sheets auth endpoint
+      window.location.href = '/api/google-sheets-auth';
     } catch (error) {
       setAuthInProgress(false);
       setMessage(`Authorization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
